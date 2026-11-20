@@ -64,6 +64,11 @@ class MainWindow(Adw.ApplicationWindow):
             self._stats_page, "stats", "Stats", "utilities-system-monitor-symbolic"
         )
 
+        self._banner = Adw.Banner()
+        self._banner.set_revealed(False)
+        self._banner.connect("button-clicked", self._on_banner_button)
+        self._banner_action = None
+
         self._header = Adw.HeaderBar()
         self._switcher = Adw.ViewSwitcher()
         self._switcher.set_stack(self._stack)
@@ -79,15 +84,19 @@ class MainWindow(Adw.ApplicationWindow):
         menu_button.set_icon_name("open-menu-symbolic")
         menu_button.set_tooltip_text("Main Menu")
         menu = Gio.Menu()
+        menu.append("Check for Question Pool Updates", "app.check-updates")
         menu.append("Preferences", "app.preferences")
         menu.append("About Exam Pool", "app.about")
         menu.append("Quit", "app.quit")
         menu_button.set_menu_model(menu)
         self._header.pack_end(menu_button)
 
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        content.append(self._banner)
+        content.append(self._stack)
         toolbar = Adw.ToolbarView()
         toolbar.add_top_bar(self._header)
-        toolbar.set_content(self._stack)
+        toolbar.set_content(content)
         self.set_content(toolbar)
 
         self._stack.connect("notify::visible-child", self._on_visible_child_changed)
@@ -126,6 +135,28 @@ class MainWindow(Adw.ApplicationWindow):
     def _open_pool(self, pack: Pack) -> None:
         self._stack.set_visible_child_name("home")
         self._home_page.open_pool(pack)
+
+    def show_update_banner(
+        self,
+        title: str,
+        *,
+        button_label: str = "Update",
+        action=None,
+    ) -> None:
+        self._banner_action = action
+        self._banner.set_title(title)
+        self._banner.set_button_label(button_label)
+        self._banner.set_revealed(True)
+
+    def hide_update_banner(self) -> None:
+        self._banner_action = None
+        self._banner.set_revealed(False)
+
+    def _on_banner_button(self, _banner: Adw.Banner) -> None:
+        action = self._banner_action
+        self._banner_action = None
+        if action is not None:
+            action()
 
     def show_preferences(self) -> None:
         dialog = PreferencesDialog(self._settings, self, self._reset_all)

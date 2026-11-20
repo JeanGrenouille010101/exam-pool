@@ -15,3 +15,7 @@ def data_dir() -> Path:
 
 def database_path() -> Path:
     return data_dir() / "progress.db"
+
+
+def content_dir() -> Path:
+    return data_dir() / "content"

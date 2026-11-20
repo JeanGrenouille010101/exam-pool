@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Flatpak tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.gnome.Platform//51 org.gnome.Sdk//51
+
+      - name: Build Flatpak
+        run: |
+          flatpak-builder --repo=repo --force-clean --disable-rofiles-fuse build-dir flatpak/io.github.jeangrenouille010101.ExamPool.json
+          flatpak build-bundle repo exam-pool.flatpak io.github.jeangrenouille010101.ExamPool
+          sha256sum exam-pool.flatpak > exam-pool.flatpak.sha256
+          cat exam-pool.flatpak.sha256
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            exam-pool.flatpak \
+            exam-pool.flatpak.sha256 \
+            --title "Exam Pool ${GITHUB_REF_NAME}" \
+            --generate-notes \
+            --notes "Install the Flatpak bundle with:
+
+          \`\`\`sh
+          flatpak install --user exam-pool.flatpak
+          \`\`\`
+
+          The GNOME 51 runtime is required and can be installed from Flathub."

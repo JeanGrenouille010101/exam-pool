@@ -9,7 +9,6 @@ are committed so the application remains offline-first.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 import shutil
@@ -519,7 +518,6 @@ def render_figures(
 
 
 def build_pack(source: PoolSource, text: str, questions: list[dict], groups: list[dict]):
-    exam_total = sum(group["exam_questions"] for group in groups)
     return {
         "schema": 1,
         "id": source.pack_id,

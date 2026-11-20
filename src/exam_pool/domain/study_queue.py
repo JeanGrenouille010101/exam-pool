@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Iterable, Mapping
 from random import Random
-from typing import Iterable, Mapping
 
 from .models import MasteryConfig, Pack, Progress, Question, is_mastered
 
@@ -46,7 +46,7 @@ class StudyQueue:
         progress: Mapping[str, Progress],
         config: MasteryConfig,
         rng: Random | None = None,
-    ) -> "StudyQueue":
+    ) -> StudyQueue:
         return cls(pack.questions, progress, config, rng)
 
     @property

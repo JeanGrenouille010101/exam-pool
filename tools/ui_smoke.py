@@ -45,7 +45,7 @@ def exercise(app: ExamPoolApplication) -> bool:
         window.show_preferences()
         window.show_about()
         print("UI smoke test passed")
-    except Exception:
+    except Exception:  # noqa: BLE001 - smoke test must report any failure
         traceback.print_exc()
         return False
     finally:

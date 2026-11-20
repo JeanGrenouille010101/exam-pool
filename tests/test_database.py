@@ -8,7 +8,6 @@ from exam_pool.data.database import Database
 from exam_pool.domain.exam import build_exam
 from exam_pool.domain.models import MasteryConfig, is_mastered
 
-
 CONFIG = MasteryConfig(min_attempts=3, target_accuracy=0.8, missed_gap=5)
 
 

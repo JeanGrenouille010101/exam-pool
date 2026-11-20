@@ -3,8 +3,7 @@ from __future__ import annotations
 import re
 
 from exam_pool.data.packs import PackRepository
-from exam_pool.domain.models import PackError, is_mastered, MasteryConfig
-
+from exam_pool.domain.models import MasteryConfig, PackError
 
 EXPECTED = {
     "technician": {

@@ -5,7 +5,7 @@ from collections.abc import Callable
 
 from gi.repository import Adw, Gdk, GLib, Gtk
 
-from ..data.database import Database, utc_now
+from ..data.database import Database
 from ..data.packs import PackRepository
 from ..domain.exam import ExamQuestion, build_exam
 from ..domain.models import Pack

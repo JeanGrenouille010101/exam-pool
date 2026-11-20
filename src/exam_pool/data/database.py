@@ -3,11 +3,10 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable, Mapping
 
-from ..domain.exam import ExamQuestion, build_exam, score_exam
+from ..domain.exam import ExamQuestion, build_exam
 from ..domain.models import (
     AnswerOutcome,
     MasteryConfig,
@@ -18,12 +17,11 @@ from ..domain.models import (
     is_mastered,
 )
 
-
 SCHEMA_VERSION = 1
 
 
 def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 class Database:

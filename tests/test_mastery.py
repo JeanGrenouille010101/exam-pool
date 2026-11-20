@@ -9,7 +9,6 @@ from exam_pool.domain.models import (
     is_mastered,
 )
 
-
 CONFIG = MasteryConfig(min_attempts=3, target_accuracy=0.8, missed_gap=5)
 
 

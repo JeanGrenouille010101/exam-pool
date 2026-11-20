@@ -16,14 +16,12 @@ class HomeView(Adw.PreferencesPage):
         packs: list[Pack],
         db: Database,
         settings: Settings,
-        repository: PackRepository,
         on_open_pool: Callable[[Pack], None],
     ) -> None:
         super().__init__()
         self._packs = packs
         self._db = db
         self._settings = settings
-        self._repository = repository
         self._on_open_pool = on_open_pool
         self._progress_labels: dict[str, Gtk.Label] = {}
 
@@ -100,7 +98,6 @@ class HomePage(Gtk.Stack):
             packs,
             db,
             settings,
-            repository,
             self._open_pool,
         )
         from .study import StudyView

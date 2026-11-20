@@ -10,14 +10,6 @@ from ..settings import Settings
 from .chart import ScoreChart
 
 
-def clear_container(widget: Gtk.Widget) -> None:
-    child = widget.get_first_child()
-    while child is not None:
-        next_child = child.get_next_sibling()
-        widget.remove(child)
-        child = next_child
-
-
 class StatsView(Adw.PreferencesPage):
     def __init__(
         self,

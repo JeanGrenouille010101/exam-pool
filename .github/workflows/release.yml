@@ -30,6 +30,7 @@ jobs:
 
       - name: Update hosted Flatpak repository
         run: |
+          git checkout -B main
           rm -rf docs/flatpak/repo
           cp -a repo docs/flatpak/repo
           git config user.name "Exam Pool release bot"

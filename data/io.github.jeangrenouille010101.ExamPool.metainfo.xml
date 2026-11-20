@@ -29,6 +29,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.1.1" date="2026-11-20">
+      <description>
+        <p>Fix the question metadata layout overflow and improve narrow-window layout.</p>
+      </description>
+    </release>
     <release version="0.1.0" date="2026-11-20">
       <description>
         <p>Initial development release with Technician, General, and Extra pools.</p>

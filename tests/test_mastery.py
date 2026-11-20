@@ -7,6 +7,7 @@ from exam_pool.domain.models import (
     Progress,
     apply_answer,
     is_mastered,
+    question_meta_text,
 )
 
 CONFIG = MasteryConfig(min_attempts=3, target_accuracy=0.8, missed_gap=5)
@@ -83,3 +84,10 @@ def test_invalid_mastery_config_is_rejected() -> None:
         MasteryConfig(min_attempts=0)
     with pytest.raises(ValueError):
         MasteryConfig(target_accuracy=1.1)
+
+
+def test_question_metadata_stays_short(pack) -> None:
+    question = max(pack.questions, key=lambda item: len(pack.group_name(item.group)))
+    text = question_meta_text(question)
+    assert text == f"{question.id} · {question.group}"
+    assert len(text) < 20

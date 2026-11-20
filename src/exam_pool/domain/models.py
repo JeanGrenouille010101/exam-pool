@@ -155,6 +155,11 @@ class MasteryConfig:
             raise ValueError("missed_gap cannot be negative")
 
 
+
+def question_meta_text(question: Question) -> str:
+    """Short, layout-safe metadata for a question row."""
+    return f"{question.id} · {question.group}"
+
 def is_mastered(progress: Progress, config: MasteryConfig) -> bool:
     return (
         progress.times_asked >= config.min_attempts

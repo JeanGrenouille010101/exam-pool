@@ -3,12 +3,12 @@ from __future__ import annotations
 import time
 from collections.abc import Callable
 
-from gi.repository import Adw, Gdk, GLib, Gtk
+from gi.repository import Adw, Gdk, GLib, Gtk, Pango
 
 from ..data.database import Database
 from ..data.packs import PackRepository
 from ..domain.exam import ExamQuestion, build_exam
-from ..domain.models import Pack
+from ..domain.models import Pack, question_meta_text
 from ..settings import Settings
 from .common import clamp_content, reference_text, wrap_label
 from .dialogs import confirm
@@ -193,6 +193,7 @@ class TestSessionView(Gtk.Box):
         self._question_meta.add_css_class("dim-label")
         self._question_meta.add_css_class("caption")
         self._question_meta.set_xalign(0)
+        self._question_meta.set_ellipsize(Pango.EllipsizeMode.END)
         card.append(self._question_meta)
         self._question_label = wrap_label()
         self._question_label.add_css_class("question-text")
@@ -264,9 +265,8 @@ class TestSessionView(Gtk.Box):
             return
         item = self._exam[self._index]
         question = item.question
-        self._question_meta.set_text(
-            f"{question.id} · {self._pack.group_name(question.group)}"
-        )
+        self._set_question_meta(question)
+
         self._question_label.set_text(question.text)
         self._render_figure(question)
         self._render_choices(item)
@@ -278,6 +278,16 @@ class TestSessionView(Gtk.Box):
         self._next_button.set_sensitive(self._index < len(self._exam) - 1)
         self._next_button.set_visible(self._index < len(self._exam) - 1)
         self._submit_button.set_visible(self._index == len(self._exam) - 1)
+
+    def _set_question_meta(self, question) -> None:
+        assert self._pack is not None
+        group_name = self._pack.group_name(question.group)
+        self._question_meta.set_text(question_meta_text(question))
+        self._question_meta.set_tooltip_text(group_name)
+        self._question_meta.update_property(
+            [Gtk.AccessibleProperty.LABEL],
+            [f"{question.id}. Group {question.group}. {group_name}"],
+        )
 
     def _render_figure(self, question) -> None:
         clear_box(self._figure_box)

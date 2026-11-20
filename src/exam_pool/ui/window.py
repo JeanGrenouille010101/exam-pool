@@ -73,6 +73,13 @@ class MainWindow(Adw.ApplicationWindow):
         self._switcher = Adw.ViewSwitcher()
         self._switcher.set_stack(self._stack)
         self._header.set_title_widget(self._switcher)
+        breakpoint = Adw.Breakpoint(
+            condition=Adw.BreakpointCondition.parse("max-width: 550sp")
+        )
+        breakpoint.add_setter(
+            self._switcher, "policy", Adw.ViewSwitcherPolicy.NARROW
+        )
+        self.add_breakpoint(breakpoint)
 
         self._back_button = Gtk.Button.new_from_icon_name("go-previous-symbolic")
         self._back_button.set_tooltip_text("Back")

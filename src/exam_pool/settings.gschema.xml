@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="io.github.gavins.ExamPool" path="/io/github/gavins/ExamPool/">
+    <key name="active-pool" type="s">
+      <default>'us-technician-2026'</default>
+      <summary>Active question pool</summary>
+      <description>The pack ID selected for study.</description>
+    </key>
+    <key name="mastery-min-attempts" type="i">
+      <default>3</default>
+      <range min="1" max="20"/>
+      <summary>Minimum attempts before mastery</summary>
+      <description>How many times a question must be asked before it can be mastered.</description>
+    </key>
+    <key name="mastery-accuracy" type="i">
+      <default>80</default>
+      <range min="1" max="100"/>
+      <summary>Mastery accuracy percentage</summary>
+      <description>The cumulative accuracy required to master a question.</description>
+    </key>
+    <key name="missed-gap" type="i">
+      <default>5</default>
+      <range min="0" max="50"/>
+      <summary>Missed question gap</summary>
+      <description>How many questions to wait before repeating a missed question.</description>
+    </key>
+    <key name="show-references" type="b">
+      <default>true</default>
+      <summary>Show FCC rule references</summary>
+      <description>Show the official rule citations included in the question pool.</description>
+    </key>
+    <key name="timed-minutes" type="i">
+      <default>30</default>
+      <range min="1" max="180"/>
+      <summary>Default timed test duration</summary>
+      <description>The default number of minutes for a timed practice test.</description>
+    </key>
+    <key name="window-width" type="i">
+      <default>960</default>
+      <range min="480" max="2400"/>
+      <summary>Window width</summary>
+    </key>
+    <key name="window-height" type="i">
+      <default>720</default>
+      <range min="480" max="1800"/>
+      <summary>Window height</summary>
+    </key>
+  </schema>
+</schemalist>

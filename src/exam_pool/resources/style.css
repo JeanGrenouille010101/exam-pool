@@ -1,0 +1,32 @@
+.question-text {
+  font-size: 1.12rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.answer-choice {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: alpha(@card_bg_color, 0.65);
+}
+
+.answer-choice:hover {
+  background-color: alpha(@accent_bg_color, 0.12);
+}
+
+.score-chart {
+  color: @accent_color;
+  margin: 8px;
+}
+
+.caption {
+  font-size: 0.85rem;
+}
+
+.success {
+  color: @success_color;
+}
+
+.error {
+  color: @error_color;
+}

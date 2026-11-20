@@ -13,3 +13,4 @@ flatpak/build/
 flatpak/repo/
 *.flatpak
 *.log
+src/exam_pool/gschemas.compiled

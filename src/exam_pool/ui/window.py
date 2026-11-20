@@ -49,7 +49,9 @@ class MainWindow(Adw.ApplicationWindow):
             ("test", "Test", "checkbox-checked-symbolic"),
             ("stats", "Stats", "x-office-spreadsheet-symbolic"),
         ):
-            placeholder = Gtk.Box()
+            placeholder = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            placeholder.set_hexpand(True)
+            placeholder.set_vexpand(True)
             self._stack.add_titled_with_icon(placeholder, name, title, icon)
             self._placeholders[name] = placeholder
 
@@ -124,14 +126,12 @@ class MainWindow(Adw.ApplicationWindow):
         self._update_back_button()
 
     def _replace_placeholder(self, name: str, page: Gtk.Widget) -> None:
-        placeholder = self._placeholders.pop(name, None)
-        if placeholder is not None:
-            self._stack.remove(placeholder)
-        title, icon = {
-            "test": ("Test", "checkbox-checked-symbolic"),
-            "stats": ("Stats", "x-office-spreadsheet-symbolic"),
-        }[name]
-        self._stack.add_titled_with_icon(page, name, title, icon)
+        container = self._placeholders.get(name)
+        if container is None:
+            return
+        page.set_hexpand(True)
+        page.set_vexpand(True)
+        container.append(page)
         self._stack.set_visible_child_name(name)
 
     def _ensure_test_page(self) -> None:

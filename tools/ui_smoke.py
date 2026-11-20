@@ -67,6 +67,17 @@ def exercise(app: ExamPoolApplication) -> bool:
         window._stack.set_visible_child_name("stats")
         window._stats_page.refresh()
         window._stats_page.refresh()
+
+        expected_pages = [("home", "Study"), ("test", "Test"), ("stats", "Stats")]
+        for index in range(30):
+            name = ("test", "stats", "home", "stats", "test", "home")[index % 6]
+            window._stack.set_visible_child_name(name)
+            pages = [
+                (page.get_name(), page.get_title())
+                for page in window._stack.get_pages()
+            ]
+            assert pages == expected_pages, pages
+
         window.show_update_banner("Test update banner", action=window.hide_update_banner)
         assert window._banner.get_revealed()
         window.hide_update_banner()

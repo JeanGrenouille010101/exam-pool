@@ -5,7 +5,8 @@ from collections.abc import Callable
 from gi.repository import Adw, Gtk
 
 from ..data.database import Database
-from ..domain.models import Pack
+from ..data.packs import PackRepository
+from ..domain.models import Pack, PackSummary
 from ..settings import Settings
 from .chart import ScoreChart
 
@@ -13,20 +14,31 @@ from .chart import ScoreChart
 class StatsView(Adw.PreferencesPage):
     def __init__(
         self,
-        packs: list[Pack],
+        packs: list[PackSummary],
         db: Database,
         settings: Settings,
+        repository: PackRepository,
         on_open_pool: Callable[[Pack], None] | None = None,
     ) -> None:
         super().__init__()
         self._packs = packs
         self._db = db
         self._settings = settings
+        self._repository = repository
         self._on_open_pool = on_open_pool
         self._current_pack = self._initial_pack()
+        self._loaded_pack: Pack | None = None
+
+        header_group = Adw.PreferencesGroup()
+        header_row = Adw.ActionRow()
+        header_row.set_icon_name("x-office-spreadsheet-symbolic")
+        header_row.set_title("Statistics")
+        header_row.set_subtitle("Your study and practice-test progress")
+        header_group.add(header_row)
+        self.add(header_group)
 
         pool_group = Adw.PreferencesGroup()
-        pool_group.set_title("Statistics")
+        pool_group.set_title("Question Pool")
         self.add(pool_group)
         self._pool_row = Adw.ComboRow()
         self._pool_row.set_title("Question pool")
@@ -90,9 +102,7 @@ class StatsView(Adw.PreferencesPage):
         )
         self.add(self._correct_group)
 
-        self.refresh()
-
-    def _initial_pack(self) -> Pack:
+    def _initial_pack(self) -> PackSummary:
         active = self._settings.active_pool_id
         return next((pack for pack in self._packs if pack.id == active), self._packs[0])
 
@@ -105,9 +115,13 @@ class StatsView(Adw.PreferencesPage):
 
     def refresh(self, pack: Pack | None = None) -> None:
         if pack is not None:
-            self._current_pack = pack
-            self._pool_row.set_selected(self._packs.index(pack))
-        self._current_pack = next(
+            summary = next(
+                (item for item in self._packs if item.id == pack.id), None
+            )
+            if summary is not None:
+                self._current_pack = summary
+                self._pool_row.set_selected(self._packs.index(summary))
+        summary = next(
             (
                 candidate
                 for candidate in self._packs
@@ -115,7 +129,10 @@ class StatsView(Adw.PreferencesPage):
             ),
             self._packs[0],
         )
-        stats = self._db.get_stats(self._current_pack, self._settings.mastery)
+        self._current_pack = summary
+        pack = self._repository.load_pack(summary)
+        self._loaded_pack = pack
+        stats = self._db.get_stats(pack, self._settings.mastery)
         total = max(1, stats["total"])
         self._set_row(
             "answered",
@@ -138,7 +155,7 @@ class StatsView(Adw.PreferencesPage):
             f"{stats['average_score']:.1f}%" if stats["tests"] else "No completed tests",
         )
 
-        history = self._db.score_history(self._current_pack.id)
+        history = self._db.score_history(pack.id)
         self._chart.set_history(history)
         if history:
             self._chart_caption.set_text(
@@ -151,13 +168,13 @@ class StatsView(Adw.PreferencesPage):
 
         self._fill_question_group(
             self._missed_group,
-            self._db.most_missed(self._current_pack, limit=5, min_attempts=3),
+            self._db.most_missed(pack, limit=5, min_attempts=3),
             suffix_key="missed",
             empty="No question has been missed three times yet.",
         )
         self._fill_question_group(
             self._correct_group,
-            self._db.most_correct(self._current_pack, limit=5, min_attempts=3),
+            self._db.most_correct(pack, limit=5, min_attempts=3),
             suffix_key="times_correct",
             empty="No question has been answered correctly three times yet.",
         )
@@ -198,7 +215,9 @@ class StatsView(Adw.PreferencesPage):
                 row.set_activatable(True)
                 row.connect(
                     "activated",
-                    lambda _row, pack=self._current_pack: self._on_open_pool(pack),
+                    lambda _row, pack=self._loaded_pack: (
+                        self._on_open_pool(pack) if pack is not None else None
+                    ),
                 )
             group.add(row)
             new_rows.append(row)

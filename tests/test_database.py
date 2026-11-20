@@ -161,6 +161,7 @@ def test_test_answers_are_included_in_coverage_and_most_missed(db, pack) -> None
     stats = db.get_stats(pack, CONFIG)
     assert stats["attempted"] == 1
     assert stats["unseen"] == len(pack.questions) - 1
+    assert db.seen_count(pack.id) == 1
     missed = db.most_missed(pack)
     assert missed[0]["question_id"] == question.id
     assert missed[0]["times_asked"] == 3

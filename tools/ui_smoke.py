@@ -15,17 +15,35 @@ def exercise(app: ExamPoolApplication) -> bool:
     try:
         window = app._window
         assert window is not None
-        pack = app._packs[0]
+        summary = app._summaries[0]
+        pack = app._repository.load_pack(summary)
         window._home_page.open_pool(pack)
         study = window._home_page._study
         assert study._current is not None
-        study._checks[0].set_active(True)
+        assert study._card.has_css_class("question-card")
+        question = study._current
+        wrong_index = next(
+            index
+            for index, choice in enumerate(question.choices)
+            if choice.id != question.correct
+        )
+        correct_index = next(
+            index
+            for index, choice in enumerate(question.choices)
+            if choice.id == question.correct
+        )
+        study._checks[wrong_index].set_active(True)
         study._on_check_clicked(study._check_button)
         assert study._answered
+        assert study._checks[correct_index].has_css_class("correct-answer")
+        assert study._checks[wrong_index].has_css_class("wrong-answer")
         study._show_next_question()
         window._home_page.back()
 
-        extra = next(pack for pack in app._packs if pack.license_class == "extra")
+        extra_summary = next(
+            item for item in app._summaries if item.license_class == "extra"
+        )
+        extra = app._repository.load_pack(extra_summary)
         window._home_page.open_pool(extra)
         figure_question = next(q for q in extra.questions if q.figure)
         study._render_figure(figure_question)

@@ -22,7 +22,11 @@ def find_controls(widget, found):
 def run_checks(app: ExamPoolApplication, state: dict[str, bool]) -> bool:
     window = app._window
     assert window is not None
-    pack = max(app._packs, key=lambda item: max(len(g.name) for g in item.groups))
+    summary = max(
+        app._summaries,
+        key=lambda item: item.question_count,
+    )
+    pack = app._repository.load_pack(summary)
     question = max(
         pack.questions,
         key=lambda item: len(pack.group_name(item.group)),

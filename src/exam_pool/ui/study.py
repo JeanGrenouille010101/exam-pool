@@ -86,6 +86,7 @@ class StudyView(Gtk.Box):
 
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
         card.add_css_class("card")
+        card.add_css_class("question-card")
         card.set_margin_top(4)
         self._card = card
 
@@ -113,6 +114,7 @@ class StudyView(Gtk.Box):
 
         self._feedback = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self._feedback.add_css_class("card")
+        self._feedback.add_css_class("feedback-card")
         self._feedback.set_visible(False)
         self._feedback_status = Gtk.Label()
         self._feedback_status.add_css_class("title-4")
@@ -341,6 +343,11 @@ class StudyView(Gtk.Box):
         )
         self._feedback_reference.set_text(reference or "")
         self._feedback_reference.set_visible(bool(reference))
+        for check, choice in zip(self._checks, self._current.choices):
+            if choice.id == self._current.correct:
+                check.add_css_class("correct-answer")
+            elif choice.id == self._selected:
+                check.add_css_class("wrong-answer")
         self._next_button.set_visible(True)
         self._next_button.set_label(
             "Finish" if self._queue.finished else "Next question"

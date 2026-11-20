@@ -24,6 +24,8 @@ jobs:
           python -m pip install Pillow
       - name: Import current NCVEC pools
         run: python tools/import_ncvec.py --refresh
+      - name: Rebuild pool index
+        run: python tools/build_index.py
       - name: Rebuild update manifest
         run: python tools/build_manifest.py
       - name: Open review PR when content changed

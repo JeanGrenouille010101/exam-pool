@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "packs": [
+    {
+      "id": "us-extra-2024",
+      "country": "US",
+      "country_name": "United States",
+      "license_class": "extra",
+      "license_name": "Amateur Extra",
+      "element": 4,
+      "effective": "2024-07-01",
+      "expires": "2028-06-30",
+      "source": {
+        "name": "NCVEC Question Pool Committee",
+        "url": "https://ncvec.org/downloads/2024-2028%20Extra%20Class%20Question%20Pool%20and%20Syllabus%20Public%20Release%20with%204th%20Errata%20Feb%204%202026.pdf",
+        "revision": "2026-02-04",
+        "license": "Public domain"
+      },
+      "exam": {
+        "questions": 50,
+        "passing": 37
+      },
+      "question_count": 599,
+      "group_count": 50
+    },
+    {
+      "id": "us-general-2023",
+      "country": "US",
+      "country_name": "United States",
+      "license_class": "general",
+      "license_name": "General",
+      "element": 3,
+      "effective": "2023-07-01",
+      "expires": "2027-06-30",
+      "source": {
+        "name": "NCVEC Question Pool Committee",
+        "url": "https://ncvec.org/downloads/General%20Class%20Pool%20and%20Syllabus%202023-2027%20Public%20Release%20with%206th%20Errata%20Feb%204%202026.pdf",
+        "revision": "2026-02-04",
+        "license": "Public domain"
+      },
+      "exam": {
+        "questions": 35,
+        "passing": 26
+      },
+      "question_count": 423,
+      "group_count": 35
+    },
+    {
+      "id": "us-technician-2026",
+      "country": "US",
+      "country_name": "United States",
+      "license_class": "technician",
+      "license_name": "Technician",
+      "element": 2,
+      "effective": "2026-07-01",
+      "expires": "2030-06-30",
+      "source": {
+        "name": "NCVEC Question Pool Committee",
+        "url": "https://ncvec.org/downloads/2026-2030%20Technician%20Pool%20and%20Syllabus%20Public%20Release%20Feb%2019%202026.pdf",
+        "revision": "2026-02-19",
+        "license": "Public domain"
+      },
+      "exam": {
+        "questions": 35,
+        "passing": 26
+      },
+      "question_count": 409,
+      "group_count": 35
+    }
+  ]
+}

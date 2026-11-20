@@ -69,6 +69,25 @@ def test_bundled_packs_are_complete() -> None:
                 assert choice.text.strip()
 
 
+def test_pack_summaries_and_lazy_pack_loading() -> None:
+    repository = PackRepository()
+    summaries = repository.load_summaries()
+    full = {pack.id: pack for pack in repository.load_all()}
+    assert [summary.license_class for summary in summaries] == [
+        "technician",
+        "general",
+        "extra",
+    ]
+    assert [summary.question_count for summary in summaries] == [409, 423, 599]
+    for summary in summaries:
+        assert summary.question_count == len(full[summary.id].questions)
+        assert summary.group_count == len(full[summary.id].groups)
+        assert summary.exam == full[summary.id].exam
+    pack = repository.load_pack(summaries[2])
+    assert pack.id == "us-extra-2024"
+    assert len(pack.questions) == 599
+
+
 def test_all_bundled_figures_resolve() -> None:
     repository = PackRepository()
     missing = []

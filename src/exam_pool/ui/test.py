@@ -8,7 +8,7 @@ from gi.repository import Adw, Gdk, GLib, Gtk, Pango
 from ..data.database import Database
 from ..data.packs import PackRepository
 from ..domain.exam import ExamQuestion, build_exam
-from ..domain.models import Pack, question_meta_text
+from ..domain.models import Pack, PackSummary, question_meta_text
 from ..settings import Settings
 from .common import clamp_content, reference_text, wrap_label
 from .dialogs import confirm
@@ -25,9 +25,9 @@ def format_duration(seconds: int | None) -> str:
 class TestSetupView(Adw.PreferencesPage):
     def __init__(
         self,
-        packs: list[Pack],
+        packs: list[PackSummary],
         settings: Settings,
-        on_start: Callable[[Pack, bool, int], None],
+        on_start: Callable[[PackSummary, bool, int], None],
     ) -> None:
         super().__init__()
         self._packs = packs
@@ -91,7 +91,7 @@ class TestSetupView(Adw.PreferencesPage):
 
         self._refresh_summary()
 
-    def _initial_pack(self) -> Pack:
+    def _initial_pack(self) -> PackSummary:
         active = self._settings.active_pool_id
         return next((pack for pack in self._packs if pack.id == active), self._packs[0])
 
@@ -189,6 +189,7 @@ class TestSessionView(Gtk.Box):
 
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
         card.add_css_class("card")
+        card.add_css_class("question-card")
         self._question_meta = Gtk.Label()
         self._question_meta.add_css_class("dim-label")
         self._question_meta.add_css_class("caption")
@@ -555,6 +556,7 @@ class TestResultsView(Gtk.Box):
             row.add_row(your_answer)
             correct = Adw.ActionRow()
             correct.set_title("Correct answer")
+            correct.set_icon_name("object-select-symbolic")
             correct.set_subtitle(
                 f"{question.correct}. {question.choice_text(question.correct)}"
             )
@@ -572,7 +574,7 @@ class TestResultsView(Gtk.Box):
 class TestPage(Gtk.Stack):
     def __init__(
         self,
-        packs: list[Pack],
+        packs: list[PackSummary],
         db: Database,
         settings: Settings,
         repository: PackRepository,
@@ -603,7 +605,8 @@ class TestPage(Gtk.Stack):
         self.add_named(self._results, "results")
         self.set_visible_child_name("setup")
 
-    def _start(self, pack: Pack, timed: bool, minutes: int) -> None:
+    def _start(self, summary: PackSummary, timed: bool, minutes: int) -> None:
+        pack = self._repository.load_pack(summary)
         mode = "timed" if timed else "untimed"
         limit = minutes * 60 if timed else None
         exam = build_exam(pack)

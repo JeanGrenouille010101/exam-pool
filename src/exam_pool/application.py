@@ -34,7 +34,7 @@ class ExamPoolApplication(Adw.Application):
             self._content_dir,
             bundled_figure_dir=self._repository.figure_dir,
         )
-        self._packs = []
+        self._summaries = []
         self._db: Database | None = None
         self._window: MainWindow | None = None
         self._update_thread: threading.Thread | None = None
@@ -56,7 +56,7 @@ class ExamPoolApplication(Adw.Application):
     def do_startup(self) -> None:
         Adw.Application.do_startup(self)
         self._load_css()
-        self._packs = self._repository.load_all()
+        self._summaries = self._repository.load_summaries()
         self._db = Database(database_path())
 
     def _load_css(self) -> None:
@@ -76,7 +76,7 @@ class ExamPoolApplication(Adw.Application):
             assert self._db is not None
             self._window = MainWindow(
                 self,
-                self._packs,
+                self._summaries,
                 self._db,
                 self._settings,
                 self._repository,
@@ -106,11 +106,11 @@ class ExamPoolApplication(Adw.Application):
         try:
             local_paths = {
                 pack.id: path
-                for pack in self._packs
+                for pack in self._summaries
                 if (path := self._repository.pack_file(pack)) is not None
             }
             update = self._updater.check(
-                self._packs,
+                self._summaries,
                 local_pack_paths=local_paths,
             )
         except UpdateError as exc:

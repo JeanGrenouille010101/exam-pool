@@ -111,6 +111,22 @@ class Pack:
 
 
 @dataclass(frozen=True, slots=True)
+class PackSummary:
+    id: str
+    country: str
+    country_name: str
+    license_class: str
+    license_name: str
+    element: int
+    effective: date
+    expires: date
+    source: Source
+    exam: ExamRules
+    question_count: int
+    group_count: int
+
+
+@dataclass(frozen=True, slots=True)
 class Progress:
     pack_id: str
     question_id: str
@@ -370,6 +386,52 @@ def pack_from_dict(data: dict[str, Any]) -> Pack:
         exam=exam,
         groups=tuple(groups),
         questions=tuple(questions),
+    )
+
+
+def pack_summary_from_dict(data: dict[str, Any]) -> PackSummary:
+    source_data = _require_mapping(data.get("source"), "source")
+    exam_data = _require_mapping(data.get("exam"), "exam")
+    return PackSummary(
+        id=_require_str(data.get("id"), "id"),
+        country=_require_str(data.get("country"), "country"),
+        country_name=_require_str(data.get("country_name"), "country_name"),
+        license_class=_require_str(data.get("license_class"), "license_class"),
+        license_name=_require_str(data.get("license_name"), "license_name"),
+        element=_require_int(data.get("element"), "element"),
+        effective=parse_date(
+            _require_str(data.get("effective"), "effective"), "effective"
+        ),
+        expires=parse_date(_require_str(data.get("expires"), "expires"), "expires"),
+        source=Source(
+            name=_require_str(source_data.get("name"), "source.name"),
+            url=_require_str(source_data.get("url"), "source.url"),
+            revision=_require_str(source_data.get("revision"), "source.revision"),
+            license=_require_str(source_data.get("license"), "source.license"),
+        ),
+        exam=ExamRules(
+            questions=_require_int(exam_data.get("questions"), "exam.questions"),
+            passing=_require_int(exam_data.get("passing"), "exam.passing"),
+        ),
+        question_count=_require_int(data.get("question_count"), "question_count"),
+        group_count=_require_int(data.get("group_count"), "group_count"),
+    )
+
+
+def pack_summary(pack: Pack) -> PackSummary:
+    return PackSummary(
+        id=pack.id,
+        country=pack.country,
+        country_name=pack.country_name,
+        license_class=pack.license_class,
+        license_name=pack.license_name,
+        element=pack.element,
+        effective=pack.effective,
+        expires=pack.expires,
+        source=pack.source,
+        exam=pack.exam,
+        question_count=len(pack.questions),
+        group_count=len(pack.groups),
     )
 
 

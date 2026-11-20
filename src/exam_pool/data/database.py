@@ -17,7 +17,7 @@ from ..domain.models import (
     is_mastered,
 )
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def utc_now() -> str:
@@ -114,11 +114,51 @@ class Database:
                     );
                     """
                 )
-                self._conn.execute(
-                    "INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,)
+                version = 1
+            if version < 2:
+                now = utc_now()
+                self._conn.executescript(
+                    """
+                    CREATE TABLE IF NOT EXISTS question_stats (
+                        pack_id TEXT NOT NULL,
+                        question_id TEXT NOT NULL,
+                        times_asked INTEGER NOT NULL DEFAULT 0,
+                        times_correct INTEGER NOT NULL DEFAULT 0,
+                        updated_at TEXT NOT NULL,
+                        PRIMARY KEY (pack_id, question_id)
+                    );
+                    CREATE INDEX IF NOT EXISTS test_answers_question
+                        ON test_answers (question_id);
+                    CREATE INDEX IF NOT EXISTS test_sessions_pack_status
+                        ON test_sessions (pack_id, status, finished_at);
+                    """
                 )
-            elif version < SCHEMA_VERSION:
+                self._conn.execute(
+                    """
+                    INSERT INTO question_stats (
+                        pack_id, question_id, times_asked, times_correct, updated_at
+                    )
+                    WITH all_answers AS (
+                        SELECT pack_id, question_id, correct FROM attempts
+                        UNION ALL
+                        SELECT ts.pack_id, ta.question_id, ta.correct
+                        FROM test_answers ta
+                        JOIN test_sessions ts ON ts.id = ta.session_id
+                        WHERE ts.status = 'completed'
+                    )
+                    SELECT pack_id, question_id, COUNT(*), SUM(correct), ?
+                    FROM all_answers
+                    GROUP BY pack_id, question_id
+                    """,
+                    (now,),
+                )
+                version = 2
+            if version != SCHEMA_VERSION:
                 raise RuntimeError(f"no migration from schema {version}")
+            self._conn.execute("DELETE FROM schema_version")
+            self._conn.execute(
+                "INSERT INTO schema_version (version) VALUES (?)", (SCHEMA_VERSION,)
+            )
 
     # ------------------------------------------------------------------
     # Study progress
@@ -203,6 +243,18 @@ class Database:
                     response_ms,
                 ),
             )
+            self._conn.execute(
+                """
+                INSERT INTO question_stats (
+                    pack_id, question_id, times_asked, times_correct, updated_at
+                ) VALUES (?, ?, 1, ?, ?)
+                ON CONFLICT (pack_id, question_id) DO UPDATE SET
+                    times_asked = question_stats.times_asked + 1,
+                    times_correct = question_stats.times_correct + excluded.times_correct,
+                    updated_at = excluded.updated_at
+                """,
+                (pack.id, question.id, int(correct), now),
+            )
         return outcome
 
     def _progress_from_row(self, row: sqlite3.Row) -> Progress:
@@ -230,6 +282,26 @@ class Database:
             ).fetchone()
         return int(row["count"])
 
+    def mastered_count(self, pack_id: str, config: MasteryConfig) -> int:
+        row = self._conn.execute(
+            """
+            SELECT COUNT(*) AS count FROM question_progress
+            WHERE pack_id = ? AND times_asked >= ?
+              AND times_correct * 1.0 / times_asked >= ?
+              AND last_result = 'correct'
+            """,
+            (pack_id, config.min_attempts, config.target_accuracy),
+        ).fetchone()
+        return int(row["count"] or 0)
+
+    def seen_count(self, pack_id: str) -> int:
+        row = self._conn.execute(
+            "SELECT COUNT(*) AS count FROM question_stats "
+            "WHERE pack_id = ? AND times_asked > 0",
+            (pack_id,),
+        ).fetchone()
+        return int(row["count"] or 0)
+
     def reset_progress(self, pack_id: str | None = None) -> None:
         with self._conn:
             if pack_id:
@@ -240,10 +312,14 @@ class Database:
                 self._conn.execute(
                     "DELETE FROM test_sessions WHERE pack_id = ?", (pack_id,)
                 )
+                self._conn.execute(
+                    "DELETE FROM question_stats WHERE pack_id = ?", (pack_id,)
+                )
             else:
                 self._conn.execute("DELETE FROM question_progress")
                 self._conn.execute("DELETE FROM attempts")
                 self._conn.execute("DELETE FROM test_sessions")
+                self._conn.execute("DELETE FROM question_stats")
 
     # ------------------------------------------------------------------
     # Tests
@@ -365,6 +441,22 @@ class Database:
                 """,
                 (finished, correct, int(passed), elapsed_seconds, session_id),
             )
+            self._conn.execute(
+                """
+                INSERT INTO question_stats (
+                    pack_id, question_id, times_asked, times_correct, updated_at
+                )
+                SELECT ?, ta.question_id, COUNT(*), SUM(ta.correct), ?
+                FROM test_answers ta
+                WHERE ta.session_id = ?
+                GROUP BY ta.question_id
+                ON CONFLICT (pack_id, question_id) DO UPDATE SET
+                    times_asked = question_stats.times_asked + excluded.times_asked,
+                    times_correct = question_stats.times_correct + excluded.times_correct,
+                    updated_at = excluded.updated_at
+                """,
+                (session["pack_id"], finished, session_id),
+            )
         return {
             "correct": correct,
             "total": total,
@@ -387,17 +479,9 @@ class Database:
         progress = self.get_progress(pack.id)
         total = len(pack.questions)
         attempted_row = self._conn.execute(
-            """
-            SELECT COUNT(DISTINCT question_id) AS count FROM (
-                SELECT question_id FROM attempts WHERE pack_id = ?
-                UNION
-                SELECT ta.question_id
-                FROM test_answers ta
-                JOIN test_sessions ts ON ts.id = ta.session_id
-                WHERE ts.pack_id = ? AND ts.status = 'completed'
-            )
-            """,
-            (pack.id, pack.id),
+            "SELECT COUNT(*) AS count FROM question_stats "
+            "WHERE pack_id = ? AND times_asked > 0",
+            (pack.id,),
         ).fetchone()
         attempted = int(attempted_row["count"] or 0)
         mastered = sum(
@@ -437,25 +521,15 @@ class Database:
     ) -> list[dict]:
         rows = self._conn.execute(
             """
-            WITH all_answers AS (
-                SELECT question_id, correct FROM attempts WHERE pack_id = ?
-                UNION ALL
-                SELECT ta.question_id, ta.correct
-                FROM test_answers ta
-                JOIN test_sessions ts ON ts.id = ta.session_id
-                WHERE ts.pack_id = ? AND ts.status = 'completed'
-            )
-            SELECT question_id, COUNT(*) AS times_asked,
-                   SUM(correct) AS times_correct,
-                   COUNT(*) - SUM(correct) AS missed,
-                   (COUNT(*) - SUM(correct)) * 1.0 / COUNT(*) AS miss_rate
-            FROM all_answers
-            GROUP BY question_id
-            HAVING COUNT(*) >= ?
+            SELECT question_id, times_asked, times_correct,
+                   (times_asked - times_correct) AS missed,
+                   (times_asked - times_correct) * 1.0 / times_asked AS miss_rate
+            FROM question_stats
+            WHERE pack_id = ? AND times_asked >= ?
             ORDER BY missed DESC, miss_rate DESC, question_id
             LIMIT ?
             """,
-            (pack.id, pack.id, min_attempts, limit),
+            (pack.id, min_attempts, limit),
         ).fetchall()
         return [self._with_question(pack, dict(row)) for row in rows]
 
@@ -464,25 +538,15 @@ class Database:
     ) -> list[dict]:
         rows = self._conn.execute(
             """
-            WITH all_answers AS (
-                SELECT question_id, correct FROM attempts WHERE pack_id = ?
-                UNION ALL
-                SELECT ta.question_id, ta.correct
-                FROM test_answers ta
-                JOIN test_sessions ts ON ts.id = ta.session_id
-                WHERE ts.pack_id = ? AND ts.status = 'completed'
-            )
-            SELECT question_id, COUNT(*) AS times_asked,
-                   SUM(correct) AS times_correct,
-                   COUNT(*) - SUM(correct) AS missed,
-                   SUM(correct) * 1.0 / COUNT(*) AS accuracy
-            FROM all_answers
-            GROUP BY question_id
-            HAVING COUNT(*) >= ?
+            SELECT question_id, times_asked, times_correct,
+                   (times_asked - times_correct) AS missed,
+                   times_correct * 1.0 / times_asked AS accuracy
+            FROM question_stats
+            WHERE pack_id = ? AND times_asked >= ?
             ORDER BY times_correct DESC, accuracy DESC, question_id
             LIMIT ?
             """,
-            (pack.id, pack.id, min_attempts, limit),
+            (pack.id, min_attempts, limit),
         ).fetchall()
         return [self._with_question(pack, dict(row)) for row in rows]
 

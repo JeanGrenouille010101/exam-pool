@@ -5,7 +5,14 @@ from dataclasses import dataclass
 from importlib.resources import files
 from pathlib import Path
 
-from ..domain.models import Pack, PackError, pack_from_dict
+from ..domain.models import (
+    Pack,
+    PackError,
+    PackSummary,
+    pack_from_dict,
+    pack_summary,
+    pack_summary_from_dict,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,6 +34,56 @@ class PackRepository:
                 Path(str(files("exam_pool").joinpath("resources/figures"))),
             )
 
+    def load_summaries(self) -> list[PackSummary]:
+        if not self.pack_dir or not self.pack_dir.exists():
+            raise PackError(f"pack directory does not exist: {self.pack_dir}")
+        index_path = self.pack_dir / "index.json"
+        summaries: dict[str, PackSummary] = {}
+        if index_path.exists():
+            try:
+                data = json.loads(index_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise PackError(f"could not read pack index {index_path}: {exc}") from exc
+            if data.get("schema") != 1:
+                raise PackError("unsupported pack index schema")
+            for item in data.get("packs", []):
+                summary = pack_summary_from_dict(item)
+                summaries[summary.id] = summary
+        else:
+            for pack in self.load_all():
+                summary = pack_summary(pack)
+                summaries[summary.id] = summary
+        if self.user_pack_dir and self.user_pack_dir.exists():
+            for path in sorted(self.user_pack_dir.glob("*.json")):
+                pack = self.load(path)
+                summary = pack_summary(pack)
+                summaries[summary.id] = summary
+        if not summaries:
+            raise PackError(f"no question packs found in {self.pack_dir}")
+        order = {"technician": 0, "general": 1, "extra": 2}
+        return sorted(
+            summaries.values(),
+            key=lambda item: (
+                item.country,
+                order.get(item.license_class, 99),
+                item.id,
+            ),
+        )
+
+    def load_pack(self, pack: PackSummary | Pack | str) -> Pack:
+        pack_id = pack.id if not isinstance(pack, str) else pack
+        license_class = getattr(pack, "license_class", None)
+        candidates = []
+        if self.user_pack_dir is not None:
+            candidates.append(self.user_pack_dir / f"{pack_id}.json")
+        if license_class:
+            candidates.append(self.pack_dir / f"{license_class}.json")
+        candidates.append(self.pack_dir / f"{pack_id}.json")
+        for path in candidates:
+            if path.exists():
+                return self.load(path)
+        raise PackError(f"question pack not found: {pack_id}")
+
     def load_all(self) -> list[Pack]:
         if not self.pack_dir or not self.pack_dir.exists():
             raise PackError(f"pack directory does not exist: {self.pack_dir}")
@@ -35,6 +92,8 @@ class PackRepository:
             if directory is None or not directory.exists():
                 continue
             for path in sorted(directory.glob("*.json")):
+                if path.name == "index.json":
+                    continue
                 pack = self.load(path)
                 packs_by_id[pack.id] = pack
         if not packs_by_id:
@@ -52,7 +111,7 @@ class PackRepository:
             raise PackError(f"could not read pack {path}: {exc}") from exc
         return pack_from_dict(data)
 
-    def pack_file(self, pack: Pack) -> Path | None:
+    def pack_file(self, pack: Pack | PackSummary) -> Path | None:
         candidates = []
         if self.user_pack_dir is not None:
             candidates.append(self.user_pack_dir / f"{pack.id}.json")

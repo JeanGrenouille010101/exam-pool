@@ -1,17 +1,39 @@
+.question-card {
+  padding: 18px 20px;
+}
+
+.feedback-card {
+  padding: 14px 16px;
+}
+
 .question-text {
   font-size: 1.12rem;
   font-weight: 500;
   line-height: 1.35;
+  margin: 4px 0 10px;
 }
 
 .answer-choice {
-  padding: 10px 12px;
+  padding: 12px 14px;
+  margin: 2px 0;
   border-radius: 8px;
   background-color: alpha(@card_bg_color, 0.65);
 }
 
 .answer-choice:hover {
   background-color: alpha(@accent_bg_color, 0.12);
+}
+
+.answer-choice.correct-answer,
+.answer-choice.correct-answer:disabled {
+  background-color: alpha(@success_color, 0.20);
+  box-shadow: inset 0 0 0 1px alpha(@success_color, 0.65);
+}
+
+.answer-choice.wrong-answer,
+.answer-choice.wrong-answer:disabled {
+  background-color: alpha(@error_color, 0.18);
+  box-shadow: inset 0 0 0 1px alpha(@error_color, 0.60);
 }
 
 .score-chart {

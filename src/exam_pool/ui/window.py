@@ -5,25 +5,23 @@ from gi.repository import Adw, Gio, Gtk
 from .. import APP_NAME, __version__
 from ..data.database import Database
 from ..data.packs import PackRepository
-from ..domain.models import Pack
+from ..domain.models import Pack, PackSummary
 from ..settings import Settings
 from .home import HomePage
 from .preferences import PreferencesDialog
-from .stats import StatsView
-from .test import TestPage
 
 
 class MainWindow(Adw.ApplicationWindow):
     def __init__(
         self,
         application: Adw.Application,
-        packs: list[Pack],
+        packs: list[PackSummary],
         db: Database,
         settings: Settings,
         repository: PackRepository,
     ) -> None:
         super().__init__(application=application)
-        self._packs = packs
+        self._summaries = packs
         self._db = db
         self._settings = settings
         self._repository = repository
@@ -34,6 +32,9 @@ class MainWindow(Adw.ApplicationWindow):
 
         self._stack = Adw.ViewStack()
         self._stack.set_vexpand(True)
+        self._test_page = None
+        self._stats_page = None
+        self._placeholders: dict[str, Gtk.Widget] = {}
         self._home_page = HomePage(
             packs,
             db,
@@ -41,28 +42,16 @@ class MainWindow(Adw.ApplicationWindow):
             repository,
             self._on_home_back_state,
         )
-        self._test_page = TestPage(
-            packs,
-            db,
-            settings,
-            repository,
-            self._on_test_back_state,
-        )
-        self._stats_page = StatsView(
-            packs,
-            db,
-            settings,
-            self._open_pool,
-        )
         self._stack.add_titled_with_icon(
             self._home_page, "home", "Study", "go-home-symbolic"
         )
-        self._stack.add_titled_with_icon(
-            self._test_page, "test", "Test", "checkbox-checked-symbolic"
-        )
-        self._stack.add_titled_with_icon(
-            self._stats_page, "stats", "Stats", "utilities-system-monitor-symbolic"
-        )
+        for name, title, icon in (
+            ("test", "Test", "checkbox-checked-symbolic"),
+            ("stats", "Stats", "x-office-spreadsheet-symbolic"),
+        ):
+            placeholder = Gtk.Box()
+            self._stack.add_titled_with_icon(placeholder, name, title, icon)
+            self._placeholders[name] = placeholder
 
         self._banner = Adw.Banner()
         self._banner.set_revealed(False)
@@ -122,11 +111,52 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _on_visible_child_changed(self, _stack, _param) -> None:
         name = self._stack.get_visible_child_name()
+        if name == "test" and self._test_page is None:
+            self._ensure_test_page()
+            return
+        if name == "stats" and self._stats_page is None:
+            self._ensure_stats_page()
+            return
         if name == "home":
             self._home_page.refresh()
-        elif name == "stats":
+        elif name == "stats" and self._stats_page is not None:
             self._stats_page.refresh()
         self._update_back_button()
+
+    def _replace_placeholder(self, name: str, page: Gtk.Widget) -> None:
+        placeholder = self._placeholders.pop(name, None)
+        if placeholder is not None:
+            self._stack.remove(placeholder)
+        title, icon = {
+            "test": ("Test", "checkbox-checked-symbolic"),
+            "stats": ("Stats", "x-office-spreadsheet-symbolic"),
+        }[name]
+        self._stack.add_titled_with_icon(page, name, title, icon)
+        self._stack.set_visible_child_name(name)
+
+    def _ensure_test_page(self) -> None:
+        from .test import TestPage
+
+        self._test_page = TestPage(
+            self._summaries,
+            self._db,
+            self._settings,
+            self._repository,
+            self._on_test_back_state,
+        )
+        self._replace_placeholder("test", self._test_page)
+
+    def _ensure_stats_page(self) -> None:
+        from .stats import StatsView
+
+        self._stats_page = StatsView(
+            self._summaries,
+            self._db,
+            self._settings,
+            self._repository,
+            self._open_pool,
+        )
+        self._replace_placeholder("stats", self._stats_page)
 
     def _update_back_button(self) -> None:
         name = self._stack.get_visible_child_name() or "home"
@@ -136,7 +166,7 @@ class MainWindow(Adw.ApplicationWindow):
         name = self._stack.get_visible_child_name()
         if name == "home":
             self._home_page.back()
-        elif name == "test":
+        elif name == "test" and self._test_page is not None:
             self._test_page.request_back()
 
     def _open_pool(self, pack: Pack) -> None:
@@ -173,8 +203,10 @@ class MainWindow(Adw.ApplicationWindow):
         self._db.reset_progress()
         self._home_page.back()
         self._home_page.refresh()
-        self._test_page.show_setup()
-        self._stats_page.refresh()
+        if self._test_page is not None:
+            self._test_page.show_setup()
+        if self._stats_page is not None:
+            self._stats_page.refresh()
 
     def show_about(self) -> None:
         dialog = Adw.AboutDialog()
@@ -193,5 +225,6 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_close_request(self, _window: Adw.ApplicationWindow) -> bool:
         width, height = self.get_default_size()
         self._settings.set_window_size(width, height)
-        self._test_page.shutdown()
+        if self._test_page is not None:
+            self._test_page.shutdown()
         return False

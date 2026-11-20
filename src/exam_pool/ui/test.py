@@ -245,7 +245,8 @@ class TestSessionView(Gtk.Box):
         self._started = time.monotonic()
         self._finished = False
         self._pool_title.set_text(pack.license_name)
-        self._timer_label.set_visible(mode == "timed")
+        self._timer_label.set_visible(True)
+        self._timer_label.set_text(format_duration(time_limit_seconds))
         self._show_question()
         if mode == "timed":
             self.stop()
@@ -400,7 +401,7 @@ class TestSessionView(Gtk.Box):
         if self._finished:
             return GLib.SOURCE_REMOVE
         if self._time_limit is None:
-            self._timer_label.set_visible(False)
+            self._timer_label.set_text("Untimed")
             return GLib.SOURCE_CONTINUE
         remaining = self._time_limit - int(time.monotonic() - self._started)
         if remaining <= 0:
@@ -423,6 +424,27 @@ class TestSessionView(Gtk.Box):
         _keycode: int,
         _state: Gdk.ModifierType,
     ) -> bool:
+        number_keys = {
+            Gdk.KEY_1: 0,
+            Gdk.KEY_KP_1: 0,
+            Gdk.KEY_2: 1,
+            Gdk.KEY_KP_2: 1,
+            Gdk.KEY_3: 2,
+            Gdk.KEY_KP_3: 2,
+            Gdk.KEY_4: 3,
+            Gdk.KEY_KP_4: 3,
+        }
+        if keyval in number_keys:
+            index = number_keys[keyval]
+            if index < len(self._checks):
+                self._checks[index].set_active(True)
+                return True
+        if keyval == Gdk.KEY_Left:
+            self._on_previous(self._previous_button)
+            return True
+        if keyval == Gdk.KEY_Right:
+            self._on_next(self._next_button)
+            return True
         if keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter):
             if self._index < len(self._exam) - 1:
                 self._on_next(self._next_button)

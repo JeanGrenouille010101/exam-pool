@@ -4,6 +4,7 @@
   "runtime-version": "51",
   "sdk": "org.gnome.Sdk",
   "command": "exam-pool",
+  "appstream-compose": false,
   "finish-args": [
     "--share=network",
     "--share=ipc",

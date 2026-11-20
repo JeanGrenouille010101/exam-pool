@@ -79,14 +79,14 @@ class StatsView(Adw.PreferencesPage):
         self._missed_group = Adw.PreferencesGroup()
         self._missed_group.set_title("Most Missed")
         self._missed_group.set_description(
-            "Questions with at least three study attempts, ranked by misses."
+            "Questions with at least three answers, ranked by misses."
         )
         self.add(self._missed_group)
 
         self._correct_group = Adw.PreferencesGroup()
         self._correct_group.set_title("Most Correct")
         self._correct_group.set_description(
-            "Questions with at least three study attempts, ranked by correct answers."
+            "Questions with at least three answers, ranked by correct answers."
         )
         self.add(self._correct_group)
 

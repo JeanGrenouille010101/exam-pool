@@ -5,7 +5,7 @@ from random import Random
 import pytest
 
 from exam_pool.data.database import Database
-from exam_pool.domain.exam import build_exam
+from exam_pool.domain.exam import ExamQuestion, build_exam
 from exam_pool.domain.models import MasteryConfig, is_mastered
 
 CONFIG = MasteryConfig(min_attempts=3, target_accuracy=0.8, missed_gap=5)
@@ -146,6 +146,24 @@ def test_most_missed_and_most_correct_require_minimum_attempts(db, pack) -> None
     correct = db.most_correct(pack)
     assert correct[0]["question_id"] == q2.id
     assert correct[0]["times_correct"] == 4
+
+
+def test_test_answers_are_included_in_coverage_and_most_missed(db, pack) -> None:
+    question = pack.questions[0]
+    exam = (ExamQuestion(question, question.choice_ids),)
+    for _ in range(3):
+        session_id = db.start_test_session(
+            pack, mode="untimed", time_limit_seconds=None, exam=exam
+        )
+        db.save_test_answer(session_id, 0, question, wrong_answer(question))
+        db.finish_test_session(session_id)
+
+    stats = db.get_stats(pack, CONFIG)
+    assert stats["attempted"] == 1
+    assert stats["unseen"] == len(pack.questions) - 1
+    missed = db.most_missed(pack)
+    assert missed[0]["question_id"] == question.id
+    assert missed[0]["times_asked"] == 3
 
 
 def test_reset_progress_removes_attempts_and_tests(db, pack) -> None:

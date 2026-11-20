@@ -386,7 +386,20 @@ class Database:
     def get_stats(self, pack: Pack, config: MasteryConfig) -> dict:
         progress = self.get_progress(pack.id)
         total = len(pack.questions)
-        attempted = sum(1 for question in pack.questions if question.id in progress)
+        attempted_row = self._conn.execute(
+            """
+            SELECT COUNT(DISTINCT question_id) AS count FROM (
+                SELECT question_id FROM attempts WHERE pack_id = ?
+                UNION
+                SELECT ta.question_id
+                FROM test_answers ta
+                JOIN test_sessions ts ON ts.id = ta.session_id
+                WHERE ts.pack_id = ? AND ts.status = 'completed'
+            )
+            """,
+            (pack.id, pack.id),
+        ).fetchone()
+        attempted = int(attempted_row["count"] or 0)
         mastered = sum(
             1
             for question in pack.questions
@@ -424,15 +437,25 @@ class Database:
     ) -> list[dict]:
         rows = self._conn.execute(
             """
-            SELECT question_id, times_asked, times_correct,
-                   (times_asked - times_correct) AS missed,
-                   (times_asked - times_correct) * 1.0 / times_asked AS miss_rate
-            FROM question_progress
-            WHERE pack_id = ? AND times_asked >= ?
+            WITH all_answers AS (
+                SELECT question_id, correct FROM attempts WHERE pack_id = ?
+                UNION ALL
+                SELECT ta.question_id, ta.correct
+                FROM test_answers ta
+                JOIN test_sessions ts ON ts.id = ta.session_id
+                WHERE ts.pack_id = ? AND ts.status = 'completed'
+            )
+            SELECT question_id, COUNT(*) AS times_asked,
+                   SUM(correct) AS times_correct,
+                   COUNT(*) - SUM(correct) AS missed,
+                   (COUNT(*) - SUM(correct)) * 1.0 / COUNT(*) AS miss_rate
+            FROM all_answers
+            GROUP BY question_id
+            HAVING COUNT(*) >= ?
             ORDER BY missed DESC, miss_rate DESC, question_id
             LIMIT ?
             """,
-            (pack.id, min_attempts, limit),
+            (pack.id, pack.id, min_attempts, limit),
         ).fetchall()
         return [self._with_question(pack, dict(row)) for row in rows]
 
@@ -441,15 +464,25 @@ class Database:
     ) -> list[dict]:
         rows = self._conn.execute(
             """
-            SELECT question_id, times_asked, times_correct,
-                   (times_asked - times_correct) AS missed,
-                   times_correct * 1.0 / times_asked AS accuracy
-            FROM question_progress
-            WHERE pack_id = ? AND times_asked >= ?
+            WITH all_answers AS (
+                SELECT question_id, correct FROM attempts WHERE pack_id = ?
+                UNION ALL
+                SELECT ta.question_id, ta.correct
+                FROM test_answers ta
+                JOIN test_sessions ts ON ts.id = ta.session_id
+                WHERE ts.pack_id = ? AND ts.status = 'completed'
+            )
+            SELECT question_id, COUNT(*) AS times_asked,
+                   SUM(correct) AS times_correct,
+                   COUNT(*) - SUM(correct) AS missed,
+                   SUM(correct) * 1.0 / COUNT(*) AS accuracy
+            FROM all_answers
+            GROUP BY question_id
+            HAVING COUNT(*) >= ?
             ORDER BY times_correct DESC, accuracy DESC, question_id
             LIMIT ?
             """,
-            (pack.id, min_attempts, limit),
+            (pack.id, pack.id, min_attempts, limit),
         ).fetchall()
         return [self._with_question(pack, dict(row)) for row in rows]
 

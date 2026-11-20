@@ -32,9 +32,14 @@ def exercise(app: ExamPoolApplication) -> bool:
             for index, choice in enumerate(question.choices)
             if choice.id == question.correct
         )
+        before_ok, before_bounds = study._action_stack.compute_bounds(window)
+        assert before_ok
         study._checks[wrong_index].set_active(True)
         study._on_check_clicked(study._check_button)
         assert study._answered
+        after_ok, after_bounds = study._action_stack.compute_bounds(window)
+        assert after_ok
+        assert abs(before_bounds.get_y() - after_bounds.get_y()) < 1
         assert study._checks[correct_index].has_css_class("correct-answer")
         assert study._checks[wrong_index].has_css_class("wrong-answer")
         study._show_next_question()

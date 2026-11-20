@@ -1,5 +1,5 @@
 """Exam Pool: a native GNOME study app for amateur radio question pools."""
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 APP_ID = "io.github.jeangrenouille010101.ExamPool"
 APP_NAME = "Exam Pool"

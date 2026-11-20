@@ -129,20 +129,32 @@ class StudyView(Gtk.Box):
 
         actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         actions.set_halign(Gtk.Align.END)
+        actions.set_margin_start(18)
+        actions.set_margin_end(18)
+        actions.set_margin_top(10)
+        actions.set_margin_bottom(12)
         self._check_button = Gtk.Button(label="Check answer")
         self._check_button.add_css_class("suggested-action")
         self._check_button.set_sensitive(False)
         self._check_button.connect("clicked", self._on_check_clicked)
-        actions.append(self._check_button)
 
         self._next_button = Gtk.Button(label="Next question")
         self._next_button.add_css_class("suggested-action")
-        self._next_button.set_visible(False)
         self._next_button.connect("clicked", self._on_next_clicked)
-        actions.append(self._next_button)
-        content.append(actions)
 
-        return clamp_content(content)
+        self._action_stack = Gtk.Stack()
+        self._action_stack.set_hhomogeneous(True)
+        self._action_stack.set_vhomogeneous(True)
+        self._action_stack.add_named(self._check_button, "check")
+        self._action_stack.add_named(self._next_button, "next")
+        self._action_stack.set_visible_child_name("check")
+        actions.append(self._action_stack)
+
+        self._scrolled = clamp_content(content)
+        toolbar = Adw.ToolbarView()
+        toolbar.set_content(self._scrolled)
+        toolbar.add_bottom_bar(actions)
+        return toolbar
 
     # ------------------------------------------------------------------
     # Session lifecycle
@@ -175,10 +187,10 @@ class StudyView(Gtk.Box):
         self._render_figure(question)
         self._render_choices(question)
         self._feedback.set_visible(False)
-        self._check_button.set_visible(True)
+        self._action_stack.set_visible_child_name("check")
         self._check_button.set_sensitive(False)
-        self._next_button.set_visible(False)
         self._stack.set_visible_child_name("question")
+        self._scrolled.get_vadjustment().set_value(0)
         self._update_progress()
 
     def _set_question_meta(self, question: Question) -> None:
@@ -317,7 +329,6 @@ class StudyView(Gtk.Box):
 
         for check in self._checks:
             check.set_sensitive(False)
-        self._check_button.set_visible(False)
         self._feedback.set_visible(True)
         self._feedback.remove_css_class("success")
         self._feedback.remove_css_class("error")
@@ -348,15 +359,24 @@ class StudyView(Gtk.Box):
                 check.add_css_class("correct-answer")
             elif choice.id == self._selected:
                 check.add_css_class("wrong-answer")
-        self._next_button.set_visible(True)
+        self._action_stack.set_visible_child_name("next")
         self._next_button.set_label(
             "Finish" if self._queue.finished else "Next question"
         )
         self._next_button.grab_focus()
+        self._scroll_to_feedback()
         self._update_progress()
 
     def _on_next_clicked(self, _button: Gtk.Button) -> None:
         self._show_next_question()
+
+    def _scroll_to_feedback(self) -> None:
+        if self._scrolled is None:
+            return
+        adjustment = self._scrolled.get_vadjustment()
+        adjustment.set_value(
+            max(adjustment.get_lower(), adjustment.get_upper() - adjustment.get_page_size())
+        )
 
     def _update_progress(self) -> None:
         if self._queue is None:

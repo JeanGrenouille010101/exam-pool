@@ -1,0 +1,35 @@
+{
+  "app-id": "io.github.gavins.ExamPool",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "51",
+  "sdk": "org.gnome.Sdk",
+  "command": "exam-pool",
+  "finish-args": [
+    "--share=network",
+    "--share=ipc",
+    "--socket=wayland",
+    "--socket=fallback-x11",
+    "--device=dri"
+  ],
+  "modules": [
+    {
+      "name": "exam-pool",
+      "buildsystem": "meson",
+      "sources": [
+        {
+          "type": "dir",
+          "path": "..",
+          "skip": [
+            ".git",
+            ".venv",
+            ".sources",
+            ".pytest_cache",
+            "__pycache__",
+            "build",
+            "content"
+          ]
+        }
+      ]
+    }
+  ]
+}

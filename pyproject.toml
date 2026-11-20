@@ -13,7 +13,7 @@ authors = [{ name = "Exam Pool contributors" }]
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "ruff>=0.9"]
 
 [project.gui-scripts]
 exam-pool = "exam_pool.__main__:main"

@@ -1,0 +1,41 @@
+name: Update question pools
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install content tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
+          python -m pip install Pillow
+      - name: Import current NCVEC pools
+        run: python tools/import_ncvec.py --refresh
+      - name: Rebuild update manifest
+        run: python tools/build_manifest.py
+      - name: Open review PR when content changed
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "Update NCVEC question pools"
+          title: "Update NCVEC question pools"
+          body: |
+            Scheduled NCVEC import detected changed question content.
+
+            CI will validate the generated packs and build the Flatpak. Review
+            the diff before merging; PDF extraction can occasionally require a
+            manual correction.
+          branch: automated/ncvec-pool-update
+          delete-branch: true

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.gavins.ExamPool</id>
+  <name>Exam Pool</name>
+  <summary>Study amateur radio question pools</summary>
+  <description>
+    <p>
+      Exam Pool is an offline-first study app for US amateur radio license
+      exams. It includes the current Technician, General, and Amateur Extra
+      question pools.
+    </p>
+    <p>
+      Study mode gives immediate feedback and schedules missed questions for
+      later in the session. Practice tests use the official exam structure and
+      show results only after submission.
+    </p>
+    <p>
+      Question content comes from the NCVEC Question Pool Committee. The app
+      shows official FCC rule citations when they are present, but does not add
+      explanations.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.gavins.ExamPool.desktop</launchable>
+  <provides>
+    <binary>exam-pool</binary>
+  </provides>
+  <categories>
+    <category>Education</category>
+  </categories>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-11-20">
+      <description>
+        <p>Initial development release with Technician, General, and Extra pools.</p>
+      </description>
+    </release>
+  </releases>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <url type="homepage">https://github.com/gavins</url>
+  <developer id="io.github.gavins">
+    <name>Exam Pool contributors</name>
+  </developer>
+</component>

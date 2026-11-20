@@ -13,7 +13,7 @@ from pathlib import Path
 from ..domain.models import Pack, PackError, pack_from_dict
 
 DEFAULT_MANIFEST_URL = (
-    "https://raw.githubusercontent.com/gavins/exam-pool/main/content/manifest.json"
+    "https://raw.githubusercontent.com/JeanGrenouille010101/exam-pool/main/content/manifest.json"
 )
 
 

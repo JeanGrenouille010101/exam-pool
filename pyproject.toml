@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "exam-pool"
 version = "0.1.0"
 description = "A native GNOME study app for US amateur radio question pools"
-readme = "README.md"
 requires-python = ">=3.11"
 license = "GPL-3.0-or-later"
 authors = [{ name = "Exam Pool contributors" }]

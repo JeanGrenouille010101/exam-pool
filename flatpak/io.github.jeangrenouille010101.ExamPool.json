@@ -1,5 +1,5 @@
 {
-  "app-id": "io.github.gavins.ExamPool",
+  "app-id": "io.github.jeangrenouille010101.ExamPool",
   "runtime": "org.gnome.Platform",
   "runtime-version": "51",
   "sdk": "org.gnome.Sdk",

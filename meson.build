@@ -69,18 +69,13 @@ schemas = custom_target(
 )
 
 install_data(
-  'data/io.github.gavins.ExamPool.desktop',
+  'data/io.github.jeangrenouille010101.ExamPool.desktop',
   install_dir: datadir / 'applications',
 )
 
 install_data(
-  'data/io.github.gavins.ExamPool.metainfo.xml',
+  'data/io.github.jeangrenouille010101.ExamPool.metainfo.xml',
   install_dir: datadir / 'metainfo',
-)
-
-install_data(
-  'data/io.github.gavins.ExamPool.svg',
-  install_dir: datadir / 'icons/hicolor/scalable/apps',
 )
 
 install_data(

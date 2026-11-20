@@ -186,8 +186,8 @@ class MainWindow(Adw.ApplicationWindow):
         )
         dialog.set_license_type(Gtk.License.GPL_3_0)
         dialog.set_copyright("© 2026 Exam Pool contributors")
-        dialog.set_website("https://github.com/gavins/exam-pool")
-        dialog.set_issue_url("https://github.com/gavins/exam-pool/issues")
+        dialog.set_website("https://github.com/JeanGrenouille010101/exam-pool")
+        dialog.set_issue_url("https://github.com/JeanGrenouille010101/exam-pool/issues")
         dialog.present(self)
 
     def _on_close_request(self, _window: Adw.ApplicationWindow) -> bool:

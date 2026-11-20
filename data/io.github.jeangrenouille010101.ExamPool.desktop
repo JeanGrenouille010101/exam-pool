@@ -2,7 +2,7 @@
 Name=Exam Pool
 Comment=Study amateur radio question pools
 Exec=exam-pool
-Icon=io.github.gavins.ExamPool
+Icon=applications-science
 Terminal=false
 Type=Application
 Categories=Education;

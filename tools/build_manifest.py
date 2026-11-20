@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PACKS = ROOT / "src" / "exam_pool" / "resources" / "pools"
 DEFAULT_FIGURES = ROOT / "src" / "exam_pool" / "resources" / "figures"
 DEFAULT_OUTPUT = ROOT / "content" / "manifest.json"
-DEFAULT_BASE_URL = "https://raw.githubusercontent.com/gavins/exam-pool/main/"
+DEFAULT_BASE_URL = "https://raw.githubusercontent.com/JeanGrenouille010101/exam-pool/main/"
 
 
 def sha256(path: Path) -> str:

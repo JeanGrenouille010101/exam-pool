@@ -1,0 +1,10 @@
+[core]
+repo_version=1
+mode=archive-z2
+indexed-deltas=true
+
+[flatpak]
+title=Exam Pool
+comment=Exam Pool Flatpak repository
+description=Flatpak builds of Exam Pool
+homepage=https://github.com/JeanGrenouille010101/exam-pool

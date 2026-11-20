@@ -52,6 +52,15 @@ class PackRepository:
             raise PackError(f"could not read pack {path}: {exc}") from exc
         return pack_from_dict(data)
 
+    def pack_file(self, pack: Pack) -> Path | None:
+        candidates = []
+        if self.user_pack_dir is not None:
+            candidates.append(self.user_pack_dir / f"{pack.id}.json")
+            candidates.append(self.user_pack_dir / f"{pack.license_class}.json")
+        candidates.append(self.pack_dir / f"{pack.license_class}.json")
+        candidates.append(self.pack_dir / f"{pack.id}.json")
+        return next((path for path in candidates if path.exists()), None)
+
     def figure_path(self, figure_id: str | None) -> Path | None:
         if not figure_id:
             return None

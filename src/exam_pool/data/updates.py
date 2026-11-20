@@ -133,14 +133,23 @@ class ContentUpdater:
         self._pack_dir = content_dir / "packs"
         self._figure_dir = content_dir / "figures"
 
-    def check(self, local_packs: list[Pack]) -> Manifest | None:
+    def check(
+        self,
+        local_packs: list[Pack],
+        *,
+        local_pack_paths: dict[str, Path] | None = None,
+    ) -> Manifest | None:
         manifest = fetch_manifest(self._url, self._timeout)
         local_revisions = {pack.id: pack.source.revision for pack in local_packs}
-        packs = [
-            item
-            for item in manifest.packs
-            if local_revisions.get(item.id) != item.revision
-        ]
+        local_pack_paths = local_pack_paths or {}
+        packs = []
+        for item in manifest.packs:
+            if local_revisions.get(item.id) != item.revision:
+                packs.append(item)
+                continue
+            path = local_pack_paths.get(item.id)
+            if path is not None and path.exists() and _sha256(path) != item.sha256:
+                packs.append(item)
         figures = [
             item
             for item in manifest.figures

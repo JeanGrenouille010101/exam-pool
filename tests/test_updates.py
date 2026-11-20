@@ -96,6 +96,28 @@ def test_no_update_when_revisions_and_figures_match(tmp_path, pack) -> None:
     assert updater.check([pack]) is None
 
 
+def test_changed_hash_triggers_update_even_with_same_revision(tmp_path, pack) -> None:
+    payload = pack_to_dict(pack)
+    pack_bytes = json.dumps(payload).encode()
+    manifest_path = write_manifest(
+        tmp_path, payload, pack_bytes, b"figure", revision="test"
+    )
+    local_path = tmp_path / "local-technician.json"
+    local_path.write_bytes(b"{}")
+    bundled_figures = tmp_path / "bundled-figures"
+    bundled_figures.mkdir()
+    (bundled_figures / "T-1.png").write_bytes(b"figure")
+
+    updater = ContentUpdater(
+        tmp_path / "content",
+        bundled_figure_dir=bundled_figures,
+        url=manifest_path.as_uri(),
+    )
+    update = updater.check([pack], local_pack_paths={pack.id: local_path})
+    assert update is not None
+    assert [item.id for item in update.packs] == [pack.id]
+
+
 def test_checksum_mismatch_is_rejected(tmp_path, pack) -> None:
     payload = pack_to_dict(pack)
     pack_bytes = json.dumps(payload).encode()

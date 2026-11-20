@@ -104,7 +104,15 @@ class ExamPoolApplication(Adw.Application):
 
     def _update_check_worker(self) -> None:
         try:
-            update = self._updater.check(self._packs)
+            local_paths = {
+                pack.id: path
+                for pack in self._packs
+                if (path := self._repository.pack_file(pack)) is not None
+            }
+            update = self._updater.check(
+                self._packs,
+                local_pack_paths=local_paths,
+            )
         except UpdateError as exc:
             if self._manual_update_check:
                 GLib.idle_add(self._show_update_error, str(exc))

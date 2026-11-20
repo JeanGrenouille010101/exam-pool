@@ -38,6 +38,11 @@ EXPECTED = {
 
 def test_bundled_packs_are_complete() -> None:
     packs = PackRepository().load_all()
+    assert [pack.license_class for pack in packs] == [
+        "technician",
+        "general",
+        "extra",
+    ]
     assert {pack.license_class for pack in packs} == set(EXPECTED)
 
     for pack in packs:

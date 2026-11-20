@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import time
 import traceback
 
 from gi.repository import GLib
@@ -39,9 +40,18 @@ def exercise(app: ExamPoolApplication) -> bool:
         session._finish()
         assert window._test_page.get_visible_child_name() == "results"
 
+        window._test_page._start(pack, True, 1)
+        timed = window._test_page._session
+        timed._started = time.monotonic() - 61
+        timed._tick()
+        assert window._test_page.get_visible_child_name() == "results"
+
         window._stack.set_visible_child_name("stats")
         window._stats_page.refresh()
         window._stats_page.refresh()
+        window.show_update_banner("Test update banner", action=window.hide_update_banner)
+        assert window._banner.get_revealed()
+        window.hide_update_banner()
         window.show_preferences()
         window.show_about()
         print("UI smoke test passed")

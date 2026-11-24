@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.jeangrenouille010101.ExamPool</id>
-  <name>Exam Pool</name>
-  <summary>Study amateur radio question pools</summary>
+  <id>io.github.jeangrenouille010101.Ohmwork</id>
+  <name>Ohmwork</name>
+  <summary>Amateur radio exam trainer</summary>
   <description>
     <p>
-      Exam Pool is an offline-first study app for US amateur radio license
+      Ohmwork is an offline-first study app for US amateur radio license
       exams. It includes the current Technician, General, and Amateur Extra
       question pools.
     </p>
@@ -20,15 +20,20 @@
       explanations.
     </p>
   </description>
-  <launchable type="desktop-id">io.github.jeangrenouille010101.ExamPool.desktop</launchable>
+  <launchable type="desktop-id">io.github.jeangrenouille010101.Ohmwork.desktop</launchable>
   <provides>
-    <binary>exam-pool</binary>
+    <binary>ohmwork</binary>
   </provides>
   <categories>
     <category>Education</category>
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.2.0" date="2026-11-24">
+      <description>
+        <p>Rename the application to Ohmwork and add the new app icon.</p>
+      </description>
+    </release>
     <release version="0.1.4" date="2026-11-20">
       <description>
         <p>Keep study action buttons fixed while answer feedback appears.</p>
@@ -57,8 +62,10 @@
   </releases>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
-  <url type="homepage">https://github.com/JeanGrenouille010101</url>
+  <url type="homepage">https://github.com/JeanGrenouille010101/exam-pool</url>
+  <url type="vcs-browser">https://github.com/JeanGrenouille010101/exam-pool</url>
+  <url type="bugtracker">https://github.com/JeanGrenouille010101/exam-pool/issues</url>
   <developer id="io.github.jeangrenouille010101">
-    <name>Exam Pool contributors</name>
+    <name>Ohmwork contributors</name>
   </developer>
 </component>

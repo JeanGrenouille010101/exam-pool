@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist>
-  <schema id="io.github.jeangrenouille010101.ExamPool" path="/io/github/jeangrenouille010101/ExamPool/">
+  <schema id="io.github.jeangrenouille010101.Ohmwork" path="/io/github/jeangrenouille010101/Ohmwork/">
     <key name="active-pool" type="s">
       <default>'us-technician-2026'</default>
       <summary>Active question pool</summary>

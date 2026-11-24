@@ -1,5 +1,5 @@
-"""Exam Pool: a native GNOME study app for amateur radio question pools."""
+"""Ohmwork: a native GNOME amateur radio exam trainer."""
 
-__version__ = "0.1.4"
-APP_ID = "io.github.jeangrenouille010101.ExamPool"
-APP_NAME = "Exam Pool"
+__version__ = "0.2.0"
+APP_ID = "io.github.jeangrenouille010101.Ohmwork"
+APP_NAME = "Ohmwork"

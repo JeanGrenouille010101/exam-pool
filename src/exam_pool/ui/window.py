@@ -84,7 +84,7 @@ class MainWindow(Adw.ApplicationWindow):
         menu = Gio.Menu()
         menu.append("Check for Question Pool Updates", "app.check-updates")
         menu.append("Preferences", "app.preferences")
-        menu.append("About Exam Pool", "app.about")
+        menu.append("About Ohmwork", "app.about")
         menu.append("Quit", "app.quit")
         menu_button.set_menu_model(menu)
         self._header.pack_end(menu_button)
@@ -212,12 +212,12 @@ class MainWindow(Adw.ApplicationWindow):
         dialog = Adw.AboutDialog()
         dialog.set_application_name(APP_NAME)
         dialog.set_version(__version__)
-        dialog.set_developer_name("Exam Pool contributors")
+        dialog.set_developer_name("Ohmwork contributors")
         dialog.set_comments(
-            "An offline-first study app for US amateur radio question pools."
+            "An offline-first amateur radio exam trainer."
         )
         dialog.set_license_type(Gtk.License.GPL_3_0)
-        dialog.set_copyright("© 2026 Exam Pool contributors")
+        dialog.set_copyright("© 2026 Ohmwork contributors")
         dialog.set_website("https://github.com/JeanGrenouille010101/exam-pool")
         dialog.set_issue_url("https://github.com/JeanGrenouille010101/exam-pool/issues")
         dialog.present(self)

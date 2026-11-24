@@ -34,10 +34,10 @@ jobs:
           flatpak install --user -y flathub org.gnome.Platform//51 org.gnome.Sdk//51
       - name: Build Flatpak
         run: |
-          flatpak-builder --repo=repo --force-clean --disable-rofiles-fuse build-dir flatpak/io.github.jeangrenouille010101.ExamPool.json
-          flatpak build-bundle repo exam-pool.flatpak io.github.jeangrenouille010101.ExamPool
+          flatpak-builder --repo=repo --force-clean --disable-rofiles-fuse build-dir flatpak/io.github.jeangrenouille010101.Ohmwork.json
+          flatpak build-bundle repo ohmwork.flatpak io.github.jeangrenouille010101.Ohmwork
       - name: Upload Flatpak bundle
         uses: actions/upload-artifact@v4
         with:
-          name: exam-pool-flatpak
-          path: exam-pool.flatpak
+          name: ohmwork-flatpak
+          path: ohmwork.flatpak

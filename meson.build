@@ -1,6 +1,6 @@
 project(
-  'exam-pool',
-  version: '0.1.4',
+  'ohmwork',
+  version: '0.2.0',
   license: 'GPL-3.0-or-later',
   meson_version: '>=0.63',
 )
@@ -69,17 +69,22 @@ schemas = custom_target(
 )
 
 install_data(
-  'data/io.github.jeangrenouille010101.ExamPool.desktop',
+  'data/io.github.jeangrenouille010101.Ohmwork.desktop',
   install_dir: datadir / 'applications',
 )
 
 install_data(
-  'data/io.github.jeangrenouille010101.ExamPool.metainfo.xml',
+  'data/io.github.jeangrenouille010101.Ohmwork.metainfo.xml',
   install_dir: datadir / 'metainfo',
 )
 
 install_data(
-  'data/exam-pool',
+  'data/io.github.jeangrenouille010101.Ohmwork.svg',
+  install_dir: datadir / 'icons/hicolor/scalable/apps',
+)
+
+install_data(
+  'data/ohmwork',
   install_dir: bindir,
   install_mode: 'rwxr-xr-x',
 )

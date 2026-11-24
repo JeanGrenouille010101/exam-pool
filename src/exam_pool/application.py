@@ -187,7 +187,7 @@ class ExamPoolApplication(Adw.Application):
     def _show_update_installed(self) -> bool:
         if self._window is not None:
             self._window.show_update_banner(
-                "Update installed. Restart Exam Pool to use the new question pools.",
+                "Update installed. Restart Ohmwork to use the new question pools.",
                 button_label="Quit",
                 action=self.quit,
             )

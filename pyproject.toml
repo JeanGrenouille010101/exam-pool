@@ -3,19 +3,19 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "exam-pool"
-version = "0.1.4"
+name = "ohmwork"
+version = "0.2.0"
 description = "A native GNOME study app for US amateur radio question pools"
 requires-python = ">=3.11"
 license = "GPL-3.0-or-later"
-authors = [{ name = "Exam Pool contributors" }]
+authors = [{ name = "Ohmwork contributors" }]
 dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.9"]
 
 [project.gui-scripts]
-exam-pool = "exam_pool.__main__:main"
+ohmwork = "exam_pool.__main__:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

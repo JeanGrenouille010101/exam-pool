@@ -23,18 +23,18 @@ jobs:
 
       - name: Build Flatpak
         run: |
-          flatpak-builder --repo=repo --force-clean --disable-rofiles-fuse build-dir flatpak/io.github.jeangrenouille010101.ExamPool.json
-          flatpak build-bundle repo exam-pool.flatpak io.github.jeangrenouille010101.ExamPool
-          sha256sum exam-pool.flatpak > exam-pool.flatpak.sha256
-          cat exam-pool.flatpak.sha256
+          flatpak-builder --repo=repo --force-clean --disable-rofiles-fuse build-dir flatpak/io.github.jeangrenouille010101.Ohmwork.json
+          flatpak build-bundle repo ohmwork.flatpak io.github.jeangrenouille010101.Ohmwork
+          sha256sum ohmwork.flatpak > ohmwork.flatpak.sha256
+          cat ohmwork.flatpak.sha256
 
       - name: Update hosted Flatpak repository
         run: |
           git checkout -B main
           rm -rf docs/flatpak/repo
           cp -a repo docs/flatpak/repo
-          git config user.name "Exam Pool release bot"
-          git config user.email "exam-pool@users.noreply.github.com"
+          git config user.name "Ohmwork release bot"
+          git config user.email "ohmwork@users.noreply.github.com"
           git add docs/flatpak/repo
           if ! git diff --cached --quiet; then
             git commit -m "Update Flatpak repository for ${GITHUB_REF_NAME}"
@@ -46,14 +46,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${GITHUB_REF_NAME}" \
-            exam-pool.flatpak \
-            exam-pool.flatpak.sha256 \
-            --title "Exam Pool ${GITHUB_REF_NAME}" \
+            ohmwork.flatpak \
+            ohmwork.flatpak.sha256 \
+            --title "Ohmwork ${GITHUB_REF_NAME}" \
             --generate-notes \
             --notes "Install the Flatpak bundle with:
 
           \`\`\`sh
-          flatpak install --user exam-pool.flatpak
+          flatpak install --user ohmwork.flatpak
           \`\`\`
 
           The GNOME 51 runtime is required and can be installed from Flathub."

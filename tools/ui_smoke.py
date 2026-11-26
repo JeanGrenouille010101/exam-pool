@@ -21,8 +21,12 @@ def exercise(app: ExamPoolApplication) -> bool:
         home.grid.select_id(summary.id, notify=True)
         assert home.grid.selected is not None
         assert home.grid.selected.id == summary.id
+        home.study_button.grab_focus()
         home.study_button.emit("clicked")
         assert window._home_page.get_visible_child_name() == "study"
+        study = window._home_page._study
+        assert not study._question_label.get_can_focus()
+        assert not study._question_label.get_selection_bounds()[0]
         window._home_page.back()
         window._home_page.open_pool(pack)
         study = window._home_page._study

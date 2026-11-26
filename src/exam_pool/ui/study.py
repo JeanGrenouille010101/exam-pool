@@ -100,6 +100,9 @@ class StudyView(Gtk.Box):
         self._question_label = wrap_label()
         self._question_label.add_css_class("question-text")
         self._question_label.set_selectable(True)
+        # Keep the text mouse-selectable without letting the stack focus it.
+        # A focused selectable GtkLabel selects all of its text.
+        self._question_label.set_can_focus(False)
         card.append(self._question_label)
 
         self._figure_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -184,6 +187,7 @@ class StudyView(Gtk.Box):
         self._set_question_meta(question)
 
         self._question_label.set_text(question.text)
+        self._question_label.select_region(0, 0)
         self._render_figure(question)
         self._render_choices(question)
         self._feedback.set_visible(False)

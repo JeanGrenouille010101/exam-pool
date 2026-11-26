@@ -9,6 +9,7 @@ are committed so the application remains offline-first.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
@@ -24,6 +25,35 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CACHE = ROOT / ".sources"
 DEFAULT_PACK_DIR = ROOT / "src" / "exam_pool" / "resources" / "pools"
 DEFAULT_FIGURE_DIR = ROOT / "src" / "exam_pool" / "resources" / "figures"
+DEFAULT_FIGURE_HASHES = ROOT / "src/exam_pool/resources/figure_sources.json"
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def load_figure_hashes(path: Path) -> dict[str, str]:
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return {str(key): str(value) for key, value in data.items()}
+
+
+def save_figure_hashes(path: Path, hashes: dict[str, str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(dict(sorted(hashes.items())), indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
 @dataclass(frozen=True)
@@ -583,6 +613,11 @@ def write_pack(source: PoolSource, pack: dict, output_dir: Path) -> Path:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--refresh", action="store_true", help="redownload sources")
+    parser.add_argument(
+        "--refresh-figures",
+        action="store_true",
+        help="force figure re-rendering",
+    )
     parser.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
     parser.add_argument("--packs", type=Path, default=DEFAULT_PACK_DIR)
     parser.add_argument("--figures", type=Path, default=DEFAULT_FIGURE_DIR)
@@ -594,6 +629,8 @@ def main() -> int:
         raise SystemExit(f"missing required tools: {', '.join(missing)}")
 
     args.cache.mkdir(parents=True, exist_ok=True)
+    figure_hashes = load_figure_hashes(DEFAULT_FIGURE_HASHES)
+    hashes_changed = False
     for source in SOURCES:
         pdf = args.cache / f"{source.slug}.pdf"
         text_path = args.cache / f"{source.slug}.txt"
@@ -606,13 +643,23 @@ def main() -> int:
         validate_questions(source, groups, questions)
         pack = build_pack(source, text, questions, groups)
         destination = write_pack(source, pack, args.packs)
-        render_figures(source, figures_pdf, args.figures, args.refresh)
+        current_hash = file_sha256(figures_pdf)
+        force_figures = (
+            args.refresh_figures
+            or figure_hashes.get(source.slug) != current_hash
+        )
+        render_figures(source, figures_pdf, args.figures, force_figures)
+        if force_figures and figure_hashes.get(source.slug) != current_hash:
+            figure_hashes[source.slug] = current_hash
+            hashes_changed = True
         print(
             f"{source.license_name}: {len(questions)} questions, "
             f"{len(groups)} groups, exam {source.exam_questions}, "
             f"-> {destination.relative_to(ROOT)}"
         )
 
+    if hashes_changed:
+        save_figure_hashes(DEFAULT_FIGURE_HASHES, figure_hashes)
     print(f"figures -> {args.figures.relative_to(ROOT)}")
     return 0
 

@@ -77,8 +77,8 @@ jobs:
             Scheduled NCVEC import detected a large or structural change, such
             as a new pool edition or a substantial question-count shift.
 
-            Review the diff and merge it manually. The next scheduled run will
-            release it after validation.
+            Review the diff and merge it manually. Merging this PR triggers the
+            release workflow after validation.
           branch: automated/ncvec-pool-update
           delete-branch: true
       - name: Stop when content is unchanged

@@ -409,22 +409,44 @@ def figure_ids() -> set[str]:
     return names
 
 
-def trim_image(path: Path) -> None:
-    image = Image.open(path).convert("RGB")
+def _trimmed(image: Image.Image) -> Image.Image:
+    image = image.convert("RGB")
     background = Image.new("RGB", image.size, (255, 255, 255))
     difference = ImageChops.difference(image, background)
     bbox = difference.getbbox()
-    if bbox:
-        left, top, right, bottom = bbox
-        padding = 16
-        bbox = (
-            max(0, left - padding),
-            max(0, top - padding),
-            min(image.width, right + padding),
-            min(image.height, bottom + padding),
-        )
-        image = image.crop(bbox)
-    image.save(path, "PNG", optimize=True)
+    if not bbox:
+        return image
+    left, top, right, bottom = bbox
+    padding = 16
+    bbox = (
+        max(0, left - padding),
+        max(0, top - padding),
+        min(image.width, right + padding),
+        min(image.height, bottom + padding),
+    )
+    return image.crop(bbox)
+
+
+def _same_pixels(path: Path, image: Image.Image) -> bool:
+    if not path.exists():
+        return False
+    try:
+        existing = Image.open(path).convert("RGB")
+    except OSError:
+        return False
+    return existing.size == image.size and existing.tobytes() == image.tobytes()
+
+
+def save_figure(image: Image.Image, destination: Path) -> None:
+    """Write a figure only when its pixels changed.
+
+    PNG encoders and PDF renderers can produce different bytes for identical
+    artwork, which used to create noise in every scheduled import.
+    """
+    image = _trimmed(image)
+    if _same_pixels(destination, image):
+        return
+    image.save(destination, "PNG", optimize=True)
 
 
 def render_pages(pdf: Path, output_dir: Path, refresh: bool) -> list[Path]:
@@ -453,8 +475,11 @@ def render_figures(
         if len(pages) != 3:
             raise ImportError_(f"{source.slug}: expected 3 diagram pages")
         for page, figure_id in zip(pages, ("T-1", "T-2", "T-3")):
-            page.replace(output_dir / f"{figure_id}.png")
-            trim_image(output_dir / f"{figure_id}.png")
+            save_figure(
+                Image.open(page).convert("RGB"),
+                output_dir / f"{figure_id}.png",
+            )
+            page.unlink()
         return
 
     if source.figures_kind == "general":
@@ -464,8 +489,8 @@ def render_figures(
         pages = render_pages(pdf, output_dir, refresh)
         if len(pages) != 1:
             raise ImportError_(f"{source.slug}: expected 1 diagram page")
-        pages[0].replace(expected)
-        trim_image(expected)
+        save_figure(Image.open(pages[0]).convert("RGB"), expected)
+        pages[0].unlink()
         return
 
     if source.figures_kind == "extra":
@@ -509,8 +534,10 @@ def render_figures(
                     int(image.width * fractions[2]),
                     int(image.height * fractions[3]),
                 )
-                image.crop(box).save(output_dir / f"{figure_id}.png", "PNG")
-                trim_image(output_dir / f"{figure_id}.png")
+                save_figure(
+                    image.crop(box),
+                    output_dir / f"{figure_id}.png",
+                )
             page.unlink()
         return
 

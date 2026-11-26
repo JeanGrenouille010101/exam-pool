@@ -60,6 +60,14 @@ def exercise(app: ExamPoolApplication) -> bool:
         window._home_page.back()
 
         window._stack.set_visible_child_name("test")
+        setup = window._test_page._setup
+        general_summary = next(
+            item for item in app._summaries if item.license_class == "general"
+        )
+        setup.select_pool(general_summary)
+        assert setup._current_pack.id == general_summary.id
+        setup.select_pool(summary)
+        assert setup._current_pack.id == summary.id
         window._test_page._start(pack, False, 30)
         session = window._test_page._session
         assert session._exam

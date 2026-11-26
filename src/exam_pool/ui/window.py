@@ -78,6 +78,7 @@ class MainWindow(Adw.ApplicationWindow):
             home_breakpoint.add_setter(
                 row, "orientation", Gtk.Orientation.VERTICAL
             )
+            home_breakpoint.add_setter(row, "width-request", 300)
         self.add_breakpoint(home_breakpoint)
 
         self._back_button = Gtk.Button.new_from_icon_name("go-previous-symbolic")

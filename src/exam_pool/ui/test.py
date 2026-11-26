@@ -22,34 +22,85 @@ def format_duration(seconds: int | None) -> str:
     return f"{seconds // 60}:{seconds % 60:02d}"
 
 
-class TestSetupView(Adw.PreferencesPage):
+class TestPoolButton(Gtk.ToggleButton):
+    def __init__(self, summary: PackSummary) -> None:
+        super().__init__()
+        self.add_css_class("card")
+        self.add_css_class("test-pool-card")
+        self.set_size_request(300, -1)
+        self.set_hexpand(True)
+        self.pack = summary
+
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        content.set_margin_top(4)
+        content.set_margin_bottom(4)
+        title = Gtk.Label(label=summary.license_name)
+        title.add_css_class("title-2")
+        title.set_xalign(0)
+        title.set_wrap(True)
+        content.append(title)
+        subtitle = Gtk.Label(
+            label=f"{summary.effective.year}–{summary.expires.year} · "
+            f"{summary.question_count} questions"
+        )
+        subtitle.add_css_class("dim-label")
+        subtitle.set_xalign(0)
+        subtitle.set_wrap(True)
+        content.append(subtitle)
+        self.set_child(content)
+
+
+class TestSetupView(Gtk.Box):
     def __init__(
         self,
         packs: list[PackSummary],
         settings: Settings,
         on_start: Callable[[PackSummary, bool, int], None],
     ) -> None:
-        super().__init__()
+        super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self._packs = packs
         self._settings = settings
         self._on_start = on_start
         self._current_pack = self._initial_pack()
+        self._cards: list[tuple[TestPoolButton, PackSummary]] = []
+
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_vexpand(True)
+
+        clamp = Adw.Clamp()
+        clamp.set_maximum_size(1000)
+        clamp.set_tightening_threshold(500)
+
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+        content.set_margin_top(28)
+        content.set_margin_bottom(32)
+        content.set_margin_start(18)
+        content.set_margin_end(18)
+        content.set_hexpand(True)
+
+        heading = Gtk.Label(label="Practice Test")
+        heading.add_css_class("title-1")
+        heading.set_xalign(0)
+        content.append(heading)
+        description = Gtk.Label(
+            label="Choose a pool and configure a full practice exam."
+        )
+        description.add_css_class("dim-label")
+        description.set_xalign(0)
+        description.set_wrap(True)
+        content.append(description)
+
+        for pack in packs:
+            card = TestPoolButton(pack)
+            card.connect("toggled", self._on_card_toggled, pack)
+            card.set_halign(Gtk.Align.CENTER)
+            content.append(card)
+            self._cards.append((card, pack))
 
         group = Adw.PreferencesGroup()
-        group.set_title("Practice Test")
-        group.set_description(
-            "Tests use one question from each official syllabus group and "
-            "show all feedback only after submission."
-        )
-        self.add(group)
-
-        self._pool_row = Adw.ComboRow()
-        self._pool_row.set_title("Question pool")
-        names = Gtk.StringList.new([pack.license_name for pack in packs])
-        self._pool_row.set_model(names)
-        self._pool_row.set_selected(self._pack_index())
-        self._pool_row.connect("notify::selected", self._on_pool_changed)
-        group.add(self._pool_row)
+        group.set_title("Exam Options")
+        content.append(group)
 
         self._summary_row = Adw.ActionRow()
         self._summary_row.set_title("Exam")
@@ -58,7 +109,7 @@ class TestSetupView(Adw.PreferencesPage):
         self._timed_row = Adw.SwitchRow()
         self._timed_row.set_title("Timed test")
         self._timed_row.set_subtitle(
-            "The FCC does not set a time limit for these exams; choose your own practice duration."
+            "No official FCC time limit; choose a practice duration."
         )
         self._timed_row.set_active(False)
         self._timed_row.connect("notify::active", self._on_timed_changed)
@@ -78,32 +129,40 @@ class TestSetupView(Adw.PreferencesPage):
         self._minutes_row.set_sensitive(False)
         group.add(self._minutes_row)
 
-        start_group = Adw.PreferencesGroup()
-        start_button = Gtk.Button(label="Start Test")
-        start_button.add_css_class("suggested-action")
-        start_button.add_css_class("pill")
-        start_button.set_halign(Gtk.Align.CENTER)
-        start_button.set_margin_top(12)
-        start_button.set_margin_bottom(12)
-        start_button.connect("clicked", self._on_start_clicked)
-        start_group.add(start_button)
-        self.add(start_group)
+        self._start_button = Gtk.Button(label="Start Test")
+        self._start_button.add_css_class("suggested-action")
+        self._start_button.set_hexpand(True)
+        self._start_button.set_margin_top(4)
+        self._start_button.connect("clicked", self._on_start_clicked)
+        content.append(self._start_button)
 
+        clamp.set_child(content)
+        scrolled.set_child(clamp)
+        self.append(scrolled)
         self._refresh_summary()
+        self.select_pool(self._current_pack)
 
     def _initial_pack(self) -> PackSummary:
         active = self._settings.active_pool_id
         return next((pack for pack in self._packs if pack.id == active), self._packs[0])
 
-    def _pack_index(self) -> int:
-        return self._packs.index(self._current_pack)
+    def _on_card_toggled(
+        self, card: TestPoolButton, summary: PackSummary
+    ) -> None:
+        if not card.get_active():
+            return
+        for other, _other_summary in self._cards:
+            if other is not card:
+                other.set_active(False)
+        self._current_pack = summary
+        self._settings.set_active_pool_id(summary.id)
+        self._refresh_summary()
 
-    def _on_pool_changed(self, row: Adw.ComboRow, _param) -> None:
-        index = row.get_selected()
-        if 0 <= index < len(self._packs):
-            self._current_pack = self._packs[index]
-            self._settings.set_active_pool_id(self._current_pack.id)
-            self._refresh_summary()
+    def select_pool(self, summary: PackSummary) -> None:
+        for card, candidate in self._cards:
+            if candidate.id == summary.id:
+                card.set_active(True)
+                break
 
     def _refresh_summary(self) -> None:
         pack = self._current_pack
@@ -117,19 +176,6 @@ class TestSetupView(Adw.PreferencesPage):
         timed = row.get_active()
         self._minutes_row.set_visible(timed)
         self._minutes_row.set_sensitive(timed)
-
-    def select_pool(self, summary: PackSummary) -> None:
-        index = next(
-            (
-                index
-                for index, pack in enumerate(self._packs)
-                if pack.id == summary.id
-            ),
-            None,
-        )
-        if index is not None:
-            self._pool_row.set_selected(index)
-            self._refresh_summary()
 
     def _on_start_clicked(self, _button: Gtk.Button) -> None:
         timed = self._timed_row.get_active()

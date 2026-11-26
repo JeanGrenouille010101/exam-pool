@@ -41,6 +41,7 @@ class MainWindow(Adw.ApplicationWindow):
             settings,
             repository,
             self._on_home_back_state,
+            self._open_test,
         )
         self._stack.add_titled_with_icon(
             self._home_page, "home", "Study", "go-home-symbolic"
@@ -172,6 +173,12 @@ class MainWindow(Adw.ApplicationWindow):
     def _open_pool(self, pack: Pack) -> None:
         self._stack.set_visible_child_name("home")
         self._home_page.open_pool(pack)
+
+    def _open_test(self, summary: PackSummary) -> None:
+        if self._test_page is None:
+            self._ensure_test_page()
+        self._stack.set_visible_child_name("test")
+        self._test_page.select_pool(summary)
 
     def show_update_banner(
         self,

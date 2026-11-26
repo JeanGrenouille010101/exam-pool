@@ -15,9 +15,8 @@
       show results only after submission.
     </p>
     <p>
-      Question content comes from the NCVEC Question Pool Committee. The app
-      shows official FCC rule citations when they are present, but does not add
-      explanations.
+      Question content comes from the NCVEC Question Pool Committee. Official
+      FCC rule citations are shown when they are present.
     </p>
   </description>
   <launchable type="desktop-id">io.github.jeangrenouille010101.Ohmwork.desktop</launchable>
@@ -29,6 +28,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.3.0" date="2026-11-26">
+      <description>
+        <p>Add the new pool-card home screen with direct study and practice-test actions.</p>
+      </description>
+    </release>
     <release version="0.2.3" date="2026-11-25">
       <description>
         <p>Use the final Ohmwork icon artwork.</p>

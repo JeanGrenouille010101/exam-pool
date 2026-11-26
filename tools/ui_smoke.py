@@ -17,6 +17,11 @@ def exercise(app: ExamPoolApplication) -> bool:
         assert window is not None
         summary = app._summaries[0]
         pack = app._repository.load_pack(summary)
+        card = window._home_page._home._cards[summary.id]
+        card.test_button.emit("clicked")
+        assert window._stack.get_visible_child_name() == "test"
+        assert window._test_page._setup._current_pack.id == summary.id
+        window._stack.set_visible_child_name("home")
         window._home_page.open_pool(pack)
         study = window._home_page._study
         assert study._current is not None

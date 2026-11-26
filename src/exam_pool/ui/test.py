@@ -118,6 +118,19 @@ class TestSetupView(Adw.PreferencesPage):
         self._minutes_row.set_visible(timed)
         self._minutes_row.set_sensitive(timed)
 
+    def select_pool(self, summary: PackSummary) -> None:
+        index = next(
+            (
+                index
+                for index, pack in enumerate(self._packs)
+                if pack.id == summary.id
+            ),
+            None,
+        )
+        if index is not None:
+            self._pool_row.set_selected(index)
+            self._refresh_summary()
+
     def _on_start_clicked(self, _button: Gtk.Button) -> None:
         timed = self._timed_row.get_active()
         minutes = int(self._minutes_row.get_value())
@@ -536,7 +549,7 @@ class TestResultsView(Gtk.Box):
         review_group = Adw.PreferencesGroup()
         review_group.set_title("Review")
         review_group.set_description(
-            "Correct answers and official references only; no explanations."
+            "Correct answers and official references."
         )
         for item in exam:
             question = item.question
@@ -657,6 +670,10 @@ class TestPage(Gtk.Stack):
         self._active_session = None
         self.set_visible_child_name("results")
         self._on_back_state(False)
+
+    def select_pool(self, summary: PackSummary) -> None:
+        self.show_setup()
+        self._setup.select_pool(summary)
 
     def show_setup(self) -> None:
         self._session.stop()

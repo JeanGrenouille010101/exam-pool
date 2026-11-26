@@ -17,8 +17,11 @@ def exercise(app: ExamPoolApplication) -> bool:
         assert window is not None
         summary = app._summaries[0]
         pack = app._repository.load_pack(summary)
-        card = window._home_page._home._cards[summary.id]
-        card.study_button.emit("clicked")
+        home = window._home_page._home
+        home.grid.select_id(summary.id, notify=True)
+        assert home.grid.selected is not None
+        assert home.grid.selected.id == summary.id
+        home.study_button.emit("clicked")
         assert window._home_page.get_visible_child_name() == "study"
         window._home_page.back()
         window._home_page.open_pool(pack)
@@ -68,7 +71,8 @@ def exercise(app: ExamPoolApplication) -> bool:
         assert setup._current_pack.id == general_summary.id
         setup.select_pool(summary)
         assert setup._current_pack.id == summary.id
-        window._test_page._start(pack, False, 30)
+        setup._timed_row.set_active(False)
+        setup._start_button.emit("clicked")
         session = window._test_page._session
         assert session._exam
         session._checks[0].set_active(True)

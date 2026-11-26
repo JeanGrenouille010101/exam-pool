@@ -8,81 +8,13 @@ from ..data.database import Database
 from ..data.packs import PackRepository
 from ..domain.models import Pack, PackSummary
 from ..settings import Settings
-
-
-class PoolCard(Gtk.Box):
-    def __init__(
-        self,
-        summary: PackSummary,
-        on_study: Callable[[PackSummary], None],
-    ) -> None:
-        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        self.add_css_class("card")
-        self.add_css_class("pool-card")
-        self.set_size_request(240, -1)
-        self.set_hexpand(True)
-        self._summary = summary
-
-        header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        title_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-        title_box.set_hexpand(True)
-        title = Gtk.Label(label=summary.license_name)
-        title.add_css_class("title-2")
-        title.set_xalign(0)
-        title.set_wrap(True)
-        title_box.append(title)
-        subtitle = Gtk.Label(
-            label=f"{summary.effective.year}–{summary.expires.year} · "
-            f"{summary.question_count} questions"
-        )
-        subtitle.add_css_class("dim-label")
-        subtitle.set_xalign(0)
-        subtitle.set_wrap(True)
-        title_box.append(subtitle)
-        header.append(title_box)
-
-        self._completion = Gtk.Image.new_from_icon_name("radio-symbolic")
-        self._completion.set_pixel_size(20)
-        self._completion.set_valign(Gtk.Align.START)
-        self._completion.set_tooltip_text("Not all questions seen")
-        header.append(self._completion)
-        self.append(header)
-
-        self._progress = Gtk.ProgressBar()
-        self._progress.set_margin_top(4)
-        self.append(self._progress)
-
-        self._progress_label = Gtk.Label()
-        self._progress_label.add_css_class("dim-label")
-        self._progress_label.set_xalign(0)
-        self._progress_label.set_wrap(True)
-        self.append(self._progress_label)
-
-        actions = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        actions.set_margin_top(4)
-        self.study_button = Gtk.Button(label="Study")
-        self.study_button.add_css_class("suggested-action")
-        self.study_button.set_hexpand(True)
-        self.study_button.connect("clicked", lambda _button: on_study(summary))
-        actions.append(self.study_button)
-        self.append(actions)
-
-        self.refresh(0, 0)
-
-    def refresh(self, seen: int, mastered: int) -> None:
-        total = self._summary.question_count
-        fraction = seen / total if total else 0.0
-        complete = total > 0 and seen >= total
-        self._progress.set_fraction(min(1.0, fraction))
-        self._progress_label.set_text(
-            f"{seen} of {total} seen · {mastered} mastered"
-        )
-        self._completion.set_from_icon_name(
-            "object-select-symbolic" if complete else "radio-symbolic"
-        )
-        self._completion.set_tooltip_text(
-            "All questions seen" if complete else "Not all questions seen"
-        )
+from .pools import (
+    PoolCard,
+    PoolGrid,
+    build_page_footer,
+    build_page_heading,
+    build_section_title,
+)
 
 
 class HomeView(Gtk.Box):
@@ -97,7 +29,7 @@ class HomeView(Gtk.Box):
         self._packs = packs
         self._db = db
         self._settings = settings
-        self._cards: dict[str, PoolCard] = {}
+        self._on_open_pool = on_open_pool
 
         scrolled = Gtk.ScrolledWindow()
         scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
@@ -107,61 +39,63 @@ class HomeView(Gtk.Box):
         clamp.set_maximum_size(1000)
         clamp.set_tightening_threshold(500)
 
-        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
-        content.set_margin_top(28)
-        content.set_margin_bottom(32)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        content.set_margin_top(20)
+        content.set_margin_bottom(10)
         content.set_margin_start(18)
         content.set_margin_end(18)
         content.set_hexpand(True)
 
-        heading = Gtk.Label(label="Question Pools")
-        heading.add_css_class("title-1")
-        heading.set_xalign(0)
-        content.append(heading)
-        description = Gtk.Label(
-            label="Choose a pool to study. Use the Test tab for a practice test."
+        content.append(
+            build_page_heading(
+                "Study",
+                "Choose a pool to study.",
+            )
         )
-        description.add_css_class("dim-label")
-        description.set_xalign(0)
-        description.set_wrap(True)
-        content.append(description)
+        content.append(build_section_title("Question Pools"))
 
-        rows = []
-        for row_index in range((len(packs) + 1) // 2):
-            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=18)
-            row.set_halign(Gtk.Align.CENTER)
-            row.set_valign(Gtk.Align.START)
-            rows.append(row)
-            content.append(row)
+        self.grid = PoolGrid(
+            packs,
+            lambda summary: PoolCard(summary, show_progress=True),
+            on_selected=self._on_selected,
+            selected_id=settings.active_pool_id,
+        )
+        content.append(self.grid)
 
-        for index, pack in enumerate(packs):
-            card = PoolCard(pack, on_open_pool)
-            card.set_size_request(300, -1)
-            rows[index // 2].append(card)
-            self._cards[pack.id] = card
-        self.rows = rows
-
-        note = Gtk.Label(
+        self.note = Gtk.Label(
             label="Question content is imported from the official NCVEC pools. "
             "FCC rule citations are shown when the pool provides them."
         )
-        note.add_css_class("dim-label")
-        note.set_xalign(0)
-        note.set_wrap(True)
-        note.set_margin_top(6)
-        content.append(note)
+        self.note.add_css_class("dim-label")
+        self.note.set_xalign(0)
+        self.note.set_wrap(True)
+        content.append(self.note)
 
         clamp.set_child(content)
         scrolled.set_child(clamp)
         self.append(scrolled)
+
+        self.study_button = Gtk.Button(label="Study")
+        self.study_button.add_css_class("suggested-action")
+        self.study_button.connect("clicked", self._on_study_clicked)
+        self.append(build_page_footer(self.study_button))
+
         self.refresh()
 
+    def _on_selected(self, summary: PackSummary) -> None:
+        self._settings.set_active_pool_id(summary.id)
+
+    def _on_study_clicked(self, _button: Gtk.Button) -> None:
+        if self.grid.selected is not None:
+            self._on_open_pool(self.grid.selected)
+
     def refresh(self) -> None:
+        self.grid.select_id(self._settings.active_pool_id)
         config = self._settings.mastery
         for pack in self._packs:
             seen = self._db.seen_count(pack.id)
             mastered = self._db.mastered_count(pack.id, config)
-            self._cards[pack.id].refresh(seen, mastered)
+            self.grid.cards[pack.id].refresh(seen, mastered)
 
 
 class HomePage(Gtk.Stack):

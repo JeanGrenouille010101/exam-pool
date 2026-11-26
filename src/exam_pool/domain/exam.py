@@ -56,9 +56,7 @@ def build_exam(pack: Pack, rng: Random | None = None) -> tuple[ExamQuestion, ...
             )
         chosen = rng.sample(list(candidates), k=group.exam_questions)
         for question in chosen:
-            choice_order = list(question.choice_ids)
-            rng.shuffle(choice_order)
-            selected.append(ExamQuestion(question, tuple(choice_order)))
+            selected.append(ExamQuestion(question, question.choice_ids))
 
     if len(selected) != pack.exam.questions:
         raise ExamBuildError(

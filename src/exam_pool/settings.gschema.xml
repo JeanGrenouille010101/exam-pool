@@ -37,7 +37,7 @@
     </key>
     <key name="window-width" type="i">
       <default>960</default>
-      <range min="480" max="2400"/>
+      <range min="360" max="2400"/>
       <summary>Window width</summary>
     </key>
     <key name="window-height" type="i">

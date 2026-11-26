@@ -10,6 +10,8 @@ from ..settings import Settings
 from .home import HomePage
 from .preferences import PreferencesDialog
 
+_PAGE_TITLES = {"home": "Study", "test": "Test", "stats": "Stats"}
+
 
 class MainWindow(Adw.ApplicationWindow):
     def __init__(
@@ -63,23 +65,30 @@ class MainWindow(Adw.ApplicationWindow):
         self._header = Adw.HeaderBar()
         self._switcher = Adw.ViewSwitcher()
         self._switcher.set_stack(self._stack)
-        self._header.set_title_widget(self._switcher)
+        self._window_title = Adw.WindowTitle()
+        self._window_title.set_title(_PAGE_TITLES["home"])
+        self._window_title.set_visible(False)
+        title_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        title_box.set_halign(Gtk.Align.CENTER)
+        title_box.append(self._switcher)
+        title_box.append(self._window_title)
+        self._header.set_title_widget(title_box)
+        self._bottom_switcher = Adw.ViewSwitcherBar()
+        self._bottom_switcher.set_stack(self._stack)
+        self._bottom_switcher.set_reveal(False)
+        self._ensure_test_page(show=False)
         breakpoint = Adw.Breakpoint(
-            condition=Adw.BreakpointCondition.parse("max-width: 550sp")
-        )
-        breakpoint.add_setter(
-            self._switcher, "policy", Adw.ViewSwitcherPolicy.NARROW
-        )
-        self.add_breakpoint(breakpoint)
-        home_breakpoint = Adw.Breakpoint(
             condition=Adw.BreakpointCondition.parse("max-width: 700sp")
         )
-        for row in self._home_page._home.rows:
-            home_breakpoint.add_setter(
-                row, "orientation", Gtk.Orientation.VERTICAL
-            )
-            home_breakpoint.add_setter(row, "width-request", 300)
-        self.add_breakpoint(home_breakpoint)
+        breakpoint.add_setter(self._switcher, "visible", False)
+        breakpoint.add_setter(self._window_title, "visible", True)
+        breakpoint.add_setter(self._bottom_switcher, "reveal", True)
+        for row in self._home_page._home.grid.rows:
+            breakpoint.add_setter(row, "orientation", Gtk.Orientation.VERTICAL)
+        breakpoint.add_setter(self._home_page._home.note, "visible", False)
+        for row in self._test_page._setup.grid.rows:
+            breakpoint.add_setter(row, "orientation", Gtk.Orientation.VERTICAL)
+        self.add_breakpoint(breakpoint)
 
         self._back_button = Gtk.Button.new_from_icon_name("go-previous-symbolic")
         self._back_button.set_tooltip_text("Back")
@@ -103,6 +112,7 @@ class MainWindow(Adw.ApplicationWindow):
         content.append(self._stack)
         toolbar = Adw.ToolbarView()
         toolbar.add_top_bar(self._header)
+        toolbar.add_bottom_bar(self._bottom_switcher)
         toolbar.set_content(content)
         self.set_content(toolbar)
 
@@ -121,7 +131,8 @@ class MainWindow(Adw.ApplicationWindow):
         self._update_back_button()
 
     def _on_visible_child_changed(self, _stack, _param) -> None:
-        name = self._stack.get_visible_child_name()
+        name = self._stack.get_visible_child_name() or "home"
+        self._window_title.set_title(_PAGE_TITLES.get(name, APP_NAME))
         if name == "test" and self._test_page is None:
             self._ensure_test_page()
             return
@@ -130,20 +141,25 @@ class MainWindow(Adw.ApplicationWindow):
             return
         if name == "home":
             self._home_page.refresh()
+        elif name == "test" and self._test_page is not None:
+            self._test_page.refresh()
         elif name == "stats" and self._stats_page is not None:
             self._stats_page.refresh()
         self._update_back_button()
 
-    def _replace_placeholder(self, name: str, page: Gtk.Widget) -> None:
+    def _replace_placeholder(
+        self, name: str, page: Gtk.Widget, *, show: bool = True
+    ) -> None:
         container = self._placeholders.get(name)
         if container is None:
             return
         page.set_hexpand(True)
         page.set_vexpand(True)
         container.append(page)
-        self._stack.set_visible_child_name(name)
+        if show:
+            self._stack.set_visible_child_name(name)
 
-    def _ensure_test_page(self) -> None:
+    def _ensure_test_page(self, *, show: bool = True) -> None:
         from .test import TestPage
 
         self._test_page = TestPage(
@@ -153,7 +169,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._repository,
             self._on_test_back_state,
         )
-        self._replace_placeholder("test", self._test_page)
+        self._replace_placeholder("test", self._test_page, show=show)
 
     def _ensure_stats_page(self) -> None:
         from .stats import StatsView

@@ -41,6 +41,7 @@ py.install_sources(
   'src/exam_pool/ui/common.py',
   'src/exam_pool/ui/dialogs.py',
   'src/exam_pool/ui/home.py',
+  'src/exam_pool/ui/pools.py',
   'src/exam_pool/ui/preferences.py',
   'src/exam_pool/ui/stats.py',
   'src/exam_pool/ui/study.py',

@@ -11,8 +11,7 @@ def test_exam_uses_one_question_per_group(pack) -> None:
     selected_groups = [item.question.group for item in exam]
     assert sorted(selected_groups) == sorted(group.id for group in pack.groups)
     for item in exam:
-        assert len(item.choice_order) == 4
-        assert set(item.choice_order) == set(item.question.choice_ids)
+        assert item.choice_order == item.question.choice_ids
 
 
 def test_exam_generation_is_deterministic_with_seed(pack) -> None:

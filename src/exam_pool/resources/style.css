@@ -25,6 +25,10 @@
   padding: 14px 16px;
 }
 
+.results-summary {
+  padding: 18px 20px;
+}
+
 .question-text {
   font-size: 1.12rem;
   font-weight: 500;

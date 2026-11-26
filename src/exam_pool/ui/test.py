@@ -15,6 +15,7 @@ from .dialogs import confirm
 from .pools import (
     PoolCard,
     PoolGrid,
+    build_action_footer,
     build_page_footer,
     build_page_heading,
     build_section_title,
@@ -491,19 +492,75 @@ class TestSessionView(Gtk.Box):
 
 
 class TestResultsView(Gtk.Box):
-    def __init__(self, on_back: Callable[[], None]) -> None:
+    def __init__(
+        self,
+        on_back: Callable[[], None],
+        on_show_stats: Callable[[Pack], None],
+    ) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self._on_back = on_back
+        self._on_show_stats = on_show_stats
+        self._pack: Pack | None = None
+
+        summary_clamp = Adw.Clamp()
+        summary_clamp.set_maximum_size(820)
+        summary_clamp.set_tightening_threshold(420)
+        summary_outer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        summary_outer.set_margin_top(18)
+        summary_outer.set_margin_start(18)
+        summary_outer.set_margin_end(18)
+
+        self._summary = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        self._summary.add_css_class("card")
+        self._summary.add_css_class("results-summary")
+        self._outcome = Gtk.Label()
+        self._outcome.add_css_class("title-1")
+        self._outcome.set_xalign(0)
+        self._summary.append(self._outcome)
+        self._grade = Gtk.Label()
+        self._grade.add_css_class("title-3")
+        self._grade.set_xalign(0)
+        self._summary.append(self._grade)
+        self._detail = Gtk.Label()
+        self._detail.add_css_class("dim-label")
+        self._detail.set_xalign(0)
+        self._detail.set_wrap(True)
+        self._summary.append(self._detail)
+        self._margin = Gtk.Label()
+        self._margin.add_css_class("dim-label")
+        self._margin.set_xalign(0)
+        self._margin.set_wrap(True)
+        self._summary.append(self._margin)
+
+        summary_outer.append(self._summary)
+        summary_clamp.set_child(summary_outer)
+        self.append(summary_clamp)
+
         self._content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
-        self._content.set_margin_top(24)
-        self._content.set_margin_bottom(32)
+        self._content.set_margin_top(12)
+        self._content.set_margin_bottom(18)
         self._content.set_margin_start(18)
         self._content.set_margin_end(18)
-        self._status = Adw.StatusPage()
-        self._content.append(self._status)
         self._groups = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
         self._content.append(self._groups)
-        self.append(clamp_content(self._content, maximum_size=820))
+
+        clamp = Adw.Clamp()
+        clamp.set_maximum_size(820)
+        clamp.set_tightening_threshold(420)
+        clamp.set_child(self._content)
+        scrolled = Gtk.ScrolledWindow()
+        scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled.set_vexpand(True)
+        scrolled.set_child(clamp)
+        self._scrolled = scrolled
+        self.append(scrolled)
+
+        self._stats_button = Gtk.Button(label="See Stats")
+        self._stats_button.connect("clicked", self._on_stats_clicked)
+        self._back_button = Gtk.Button(label="Back to Tests")
+        self._back_button.add_css_class("suggested-action")
+        self._back_button.connect("clicked", lambda _button: self._on_back())
+        self.append(build_action_footer([self._stats_button, self._back_button]))
 
     def show_result(
         self,
@@ -517,20 +574,32 @@ class TestResultsView(Gtk.Box):
         elapsed_seconds: int,
     ) -> None:
         passed = bool(result["passed"])
-        self._status.set_icon_name(
-            "emblem-ok-symbolic" if passed else "dialog-error-symbolic"
+        correct = int(result["correct"])
+        total = int(result["total"])
+        passing = int(result["passing"])
+        percentage = 100.0 * correct / total if total else 0.0
+        margin = correct - passing
+        self._pack = pack
+
+        self._outcome.set_text("Passed" if passed else "Not passed")
+        self._outcome.remove_css_class("success")
+        self._outcome.remove_css_class("error")
+        self._outcome.add_css_class("success" if passed else "error")
+        self._grade.set_text(f"Grade: {percentage:.0f}%")
+        self._detail.set_text(
+            f"{correct} of {total} correct · passing score {passing}"
         )
-        self._status.set_title("Passed" if passed else "Not passed")
-        percentage = 100.0 * result["correct"] / result["total"]
-        self._status.set_description(
-            f"{result['correct']} of {result['total']} correct "
-            f"({percentage:.0f}%). Passing score: {result['passing']}."
-        )
-        button = Gtk.Button(label="Back to tests")
-        button.add_css_class("suggested-action")
-        button.set_halign(Gtk.Align.CENTER)
-        button.connect("clicked", lambda _button: self._on_back())
-        self._status.set_child(button)
+        if passed:
+            if margin == 0:
+                margin_text = "Met the passing score"
+            else:
+                noun = "question" if margin == 1 else "questions"
+                margin_text = f"Passed by {margin} {noun}"
+        else:
+            short = abs(margin)
+            noun = "question" if short == 1 else "questions"
+            margin_text = f"{short} {noun} short"
+        self._margin.set_text(margin_text)
 
         child = self._groups.get_first_child()
         while child is not None:
@@ -540,10 +609,6 @@ class TestResultsView(Gtk.Box):
 
         summary = Adw.PreferencesGroup()
         summary.set_title("Result")
-        score_row = Adw.ActionRow()
-        score_row.set_title("Score")
-        score_row.set_subtitle(f"{result['correct']} / {result['total']}")
-        summary.add(score_row)
         mode_row = Adw.ActionRow()
         mode_row.set_title("Mode")
         mode_row.set_subtitle(
@@ -579,13 +644,13 @@ class TestResultsView(Gtk.Box):
                 else f"{selected}. {question.choice_text(selected)}"
             )
             row.add_row(your_answer)
-            correct = Adw.ActionRow()
-            correct.set_title("Correct answer")
-            correct.set_icon_name("object-select-symbolic")
-            correct.set_subtitle(
+            correct_row = Adw.ActionRow()
+            correct_row.set_title("Correct answer")
+            correct_row.set_icon_name("object-select-symbolic")
+            correct_row.set_subtitle(
                 f"{question.correct}. {question.choice_text(question.correct)}"
             )
-            row.add_row(correct)
+            row.add_row(correct_row)
             reference = reference_text(question.reference)
             if reference:
                 ref_row = Adw.ActionRow()
@@ -594,6 +659,18 @@ class TestResultsView(Gtk.Box):
                 row.add_row(ref_row)
             review_group.add(row)
         self._groups.append(review_group)
+
+        self._scrolled.get_vadjustment().set_value(0)
+        GLib.idle_add(self._focus_actions)
+
+    def _focus_actions(self) -> bool:
+        self._scrolled.get_vadjustment().set_value(0)
+        self._back_button.grab_focus()
+        return False
+
+    def _on_stats_clicked(self, _button: Gtk.Button) -> None:
+        if self._pack is not None:
+            self._on_show_stats(self._pack)
 
 
 class TestPage(Gtk.Stack):
@@ -604,6 +681,7 @@ class TestPage(Gtk.Stack):
         settings: Settings,
         repository: PackRepository,
         on_back_state: Callable[[bool], None],
+        on_show_stats: Callable[[Pack], None],
     ) -> None:
         super().__init__()
         self._packs = packs
@@ -624,7 +702,7 @@ class TestPage(Gtk.Stack):
             self._finished,
             self.request_back,
         )
-        self._results = TestResultsView(self.show_setup)
+        self._results = TestResultsView(self.show_setup, on_show_stats)
         self.add_named(self._setup, "setup")
         self.add_named(self._session, "session")
         self.add_named(self._results, "results")

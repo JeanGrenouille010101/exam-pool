@@ -160,8 +160,8 @@ class PoolGrid(Gtk.Box):
             self._on_selected(summary)
 
 
-def build_page_footer(button: Gtk.Button) -> Gtk.Widget:
-    """Pin a primary action below the page's scrolled content."""
+def build_action_footer(buttons: list[Gtk.Button]) -> Gtk.Widget:
+    """Pin one or more actions below the page's scrolled content."""
 
     footer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
     footer.add_css_class("page-footer")
@@ -170,17 +170,23 @@ def build_page_footer(button: Gtk.Button) -> Gtk.Widget:
     clamp.set_maximum_size(1000)
     clamp.set_tightening_threshold(500)
 
-    content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+    content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
     content.set_margin_top(12)
     content.set_margin_bottom(12)
     content.set_margin_start(18)
     content.set_margin_end(18)
 
-    button.set_hexpand(True)
-    content.append(button)
+    for button in buttons:
+        button.set_hexpand(True)
+        content.append(button)
     clamp.set_child(content)
     footer.append(clamp)
     return footer
+
+
+def build_page_footer(button: Gtk.Button) -> Gtk.Widget:
+    """Pin a single primary action below the page's scrolled content."""
+    return build_action_footer([button])
 
 
 def build_page_heading(title: str, description: str) -> Gtk.Widget:

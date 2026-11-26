@@ -168,6 +168,7 @@ class MainWindow(Adw.ApplicationWindow):
             self._settings,
             self._repository,
             self._on_test_back_state,
+            self._show_stats_for_pack,
         )
         self._replace_placeholder("test", self._test_page, show=show)
 
@@ -197,6 +198,13 @@ class MainWindow(Adw.ApplicationWindow):
     def _open_pool(self, pack: Pack) -> None:
         self._stack.set_visible_child_name("home")
         self._home_page.open_pool(pack)
+
+    def _show_stats_for_pack(self, pack: Pack) -> None:
+        if self._stats_page is None:
+            self._ensure_stats_page()
+        if self._stats_page is not None:
+            self._stats_page.refresh(pack)
+        self._stack.set_visible_child_name("stats")
 
     def show_update_banner(
         self,

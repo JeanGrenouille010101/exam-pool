@@ -105,6 +105,36 @@ def exercise(app: ExamPoolApplication) -> bool:
         session._finish()
         assert window._test_page.get_visible_child_name() == "results"
 
+        results = window._test_page._results
+        assert results._outcome.get_text() == "Not passed"
+        assert results._grade.get_text().startswith("Grade: ")
+        assert "short" in results._margin.get_text()
+        assert results._stats_button.get_mapped()
+        assert results._back_button.get_mapped()
+
+        results.show_result(
+            window._test_page._active_pack,
+            window._test_page._active_exam,
+            {"correct": 30, "total": 35, "passing": 26, "passed": True},
+            answers={},
+            mode="untimed",
+            time_limit_seconds=None,
+            elapsed_seconds=65,
+        )
+        assert results._outcome.get_text() == "Passed"
+        assert results._grade.get_text() == "Grade: 86%"
+        assert results._detail.get_text() == (
+            "30 of 35 correct · passing score 26"
+        )
+        assert results._margin.get_text() == "Passed by 4 questions"
+
+        results._stats_button.emit("clicked")
+        assert window._stack.get_visible_child_name() == "stats"
+        assert window._stats_page._current_pack.id == summary.id
+        window._stack.set_visible_child_name("test")
+        results._back_button.emit("clicked")
+        assert window._test_page.get_visible_child_name() == "setup"
+
         window._test_page._start(pack, True, 1)
         timed = window._test_page._session
         timed._started = time.monotonic() - 61

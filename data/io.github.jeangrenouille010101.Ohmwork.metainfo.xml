@@ -29,6 +29,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.2.2" date="2026-11-26">
+      <description>
+        <p>Use the corrected Ohmwork icon export.</p>
+      </description>
+    </release>
     <release version="0.2.1" date="2026-11-25">
       <description>
         <p>Use the updated Ohmwork radio icon.</p>

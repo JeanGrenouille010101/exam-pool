@@ -28,6 +28,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.3.5" date="2026-11-26">
+      <description>
+        <p>Resume unfinished study sessions and show overall pool progress in Study mode.</p>
+      </description>
+    </release>
     <release version="0.3.4" date="2026-11-26">
       <description>
         <p>Prevent the question text from being selected when starting study mode.</p>

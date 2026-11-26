@@ -8,13 +8,12 @@
    version="1.1"
    id="svg1"
    inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
-   sodipodi:docname="io.github.jeangrenouille010101.Ohmwork.svg"
+   sodipodi:docname="realone.svg"
    inkscape:export-filename="realone.svg"
    inkscape:export-xdpi="96"
    inkscape:export-ydpi="96"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
   <sodipodi:namedview
@@ -28,8 +27,8 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      inkscape:zoom="2.4761843"
-     inkscape:cx="45.63473"
-     inkscape:cy="61.788617"
+     inkscape:cx="-2.8269301"
+     inkscape:cy="75.115572"
      inkscape:window-width="1536"
      inkscape:window-height="795"
      inkscape:window-x="0"
@@ -56,28 +55,6 @@
        inverse="true"
        flatten="false"
        hide_clip="false" />
-    <linearGradient
-       id="linearGradient11"
-       inkscape:collect="always">
-      <stop
-         style="stop-color:#ed333b;stop-opacity:1;"
-         offset="0"
-         id="stop11" />
-      <stop
-         style="stop-color:#c061cb;stop-opacity:1;"
-         offset="1"
-         id="stop12" />
-    </linearGradient>
-    <linearGradient
-       inkscape:collect="always"
-       xlink:href="#linearGradient11"
-       id="linearGradient12"
-       x1="26.392254"
-       y1="5.9836688"
-       x2="32.482773"
-       y2="5.9836688"
-       gradientUnits="userSpaceOnUse"
-       gradientTransform="translate(-35.421183,23.192579)" />
     <clipPath
        clipPathUnits="userSpaceOnUse"
        id="clipPath40">
@@ -109,22 +86,13 @@
          d="M 15.301094,11.515028 H 32.006095 V 25.832483 H 15.301094 Z m 8.28265,3.033074 v 8.681409 h 4.345627 v -8.681409 z" />
     </clipPath>
   </defs>
-  <rect
-     style="fill:url(#linearGradient12);stroke-width:0.0470958;stroke-linejoin:bevel"
-     id="rect5"
-     width="6.0905199"
-     height="4.9151564"
-     x="-9.0289288"
-     y="26.71867"
-     transform="rotate(-90,-5.6759831,3.164058)"
-     clip-path="url(#clipPath40)" />
   <g
      inkscape:groupmode="layer"
      id="layer4"
      inkscape:label="Layer 4">
     <g
        id="g42"
-       transform="translate(0.43789476,0.67999706)">
+       transform="matrix(1.1981686,0,0,1.1981686,-4.8769509,-5.6827983)">
       <rect
          style="fill:#ed333b;fill-opacity:1;stroke:none;stroke-width:0.122;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none"
          id="rect48"

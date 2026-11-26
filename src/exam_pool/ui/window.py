@@ -57,11 +57,6 @@ class MainWindow(Adw.ApplicationWindow):
             self._stack.add_titled_with_icon(placeholder, name, title, icon)
             self._placeholders[name] = placeholder
 
-        self._banner = Adw.Banner()
-        self._banner.set_revealed(False)
-        self._banner.connect("button-clicked", self._on_banner_button)
-        self._banner_action = None
-
         self._header = Adw.HeaderBar()
         self._switcher = Adw.ViewSwitcher()
         self._switcher.set_stack(self._stack)
@@ -100,7 +95,6 @@ class MainWindow(Adw.ApplicationWindow):
         menu_button.set_icon_name("open-menu-symbolic")
         menu_button.set_tooltip_text("Main Menu")
         menu = Gio.Menu()
-        menu.append("Check for Question Pool Updates", "app.check-updates")
         menu.append("Preferences", "app.preferences")
         menu.append("About Ohmwork", "app.about")
         menu.append("Quit", "app.quit")
@@ -108,7 +102,6 @@ class MainWindow(Adw.ApplicationWindow):
         self._header.pack_end(menu_button)
 
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        content.append(self._banner)
         content.append(self._stack)
         toolbar = Adw.ToolbarView()
         toolbar.add_top_bar(self._header)
@@ -205,28 +198,6 @@ class MainWindow(Adw.ApplicationWindow):
         if self._stats_page is not None:
             self._stats_page.refresh(pack)
         self._stack.set_visible_child_name("stats")
-
-    def show_update_banner(
-        self,
-        title: str,
-        *,
-        button_label: str = "Update",
-        action=None,
-    ) -> None:
-        self._banner_action = action
-        self._banner.set_title(title)
-        self._banner.set_button_label(button_label)
-        self._banner.set_revealed(True)
-
-    def hide_update_banner(self) -> None:
-        self._banner_action = None
-        self._banner.set_revealed(False)
-
-    def _on_banner_button(self, _banner: Adw.Banner) -> None:
-        action = self._banner_action
-        self._banner_action = None
-        if action is not None:
-            action()
 
     def show_preferences(self) -> None:
         dialog = PreferencesDialog(self._settings, self, self._reset_all)

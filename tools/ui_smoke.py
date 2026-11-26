@@ -155,9 +155,6 @@ def exercise(app: ExamPoolApplication) -> bool:
             ]
             assert pages == expected_pages, pages
 
-        window.show_update_banner("Test update banner", action=window.hide_update_banner)
-        assert window._banner.get_revealed()
-        window.hide_update_banner()
         window.show_preferences()
         window.show_about()
         print("UI smoke test passed")

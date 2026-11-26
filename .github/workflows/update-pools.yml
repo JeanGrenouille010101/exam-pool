@@ -8,6 +8,11 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
+
+concurrency:
+  group: ncvec-pool-update
+  cancel-in-progress: false
 
 jobs:
   update:
@@ -17,27 +22,80 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install content tools
+      - name: Install content and test tools
         run: |
           sudo apt-get update
           sudo apt-get install -y poppler-utils
+          python -m pip install -e '.[dev]'
           python -m pip install Pillow
       - name: Import current NCVEC pools
         run: python tools/import_ncvec.py --refresh
       - name: Rebuild pool index
         run: python tools/build_index.py
-      - name: Rebuild update manifest
-        run: python tools/build_manifest.py
-      - name: Open review PR when content changed
+      - name: Validate pool changes
+        id: validate
+        continue-on-error: true
+        run: python tools/validate_packs.py --summary "$GITHUB_STEP_SUMMARY"
+      - name: Open review PR for invalid content
+        if: steps.validate.outputs.classification == 'invalid'
         uses: peter-evans/create-pull-request@v6
         with:
           commit-message: "Update NCVEC question pools"
-          title: "Update NCVEC question pools"
+          title: "Update NCVEC question pools (validation failed)"
           body: |
-            Scheduled NCVEC import detected changed question content.
-
-            CI will validate the generated packs and build the Flatpak. Review
-            the diff before merging; PDF extraction can occasionally require a
-            manual correction.
+            Scheduled NCVEC import produced question packs that failed
+            validation. Review the generated content and correct any extraction
+            problems before merging.
           branch: automated/ncvec-pool-update
           delete-branch: true
+          draft: true
+      - name: Fail on invalid content
+        if: steps.validate.outputs.classification == 'invalid'
+        run: exit 1
+      - name: Open review PR for large changes
+        if: steps.validate.outputs.classification == 'review'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "Update NCVEC question pools"
+          title: "Update NCVEC question pools (needs review)"
+          body: |
+            Scheduled NCVEC import detected a large or structural change, such
+            as a new pool edition or a substantial question-count shift.
+
+            Review the diff and merge it manually. The next scheduled run will
+            release it after validation.
+          branch: automated/ncvec-pool-update
+          delete-branch: true
+      - name: Stop when content is unchanged
+        if: steps.validate.outputs.classification == 'none'
+        run: echo "No question pool changes detected."
+      - name: Test release candidate
+        if: steps.validate.outputs.classification == 'release'
+        run: |
+          ruff check src tests tools
+          pytest
+      - name: Bump version and tag
+        id: version
+        if: steps.validate.outputs.classification == 'release'
+        run: |
+          version=$(python tools/bump_version.py \
+            --part patch \
+            --notes "Update bundled NCVEC question pools.")
+          tag="v$version"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          git config user.name "Ohmwork release bot"
+          git config user.email "ohmwork@users.noreply.github.com"
+          git add -A
+          git commit -m "Update NCVEC question pools for $tag"
+          git pull --rebase origin main
+          git tag -a "$tag" -m "Ohmwork $tag"
+          git push origin main
+          git push origin "$tag"
+      - name: Trigger release workflow
+        if: steps.validate.outputs.classification == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run release.yml \
+            --ref "${{ steps.version.outputs.tag }}" \
+            -f tag="${{ steps.version.outputs.tag }}"

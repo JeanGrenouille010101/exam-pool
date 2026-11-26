@@ -296,12 +296,14 @@ def main() -> int:
     parser.add_argument("--pack-dir", type=Path, default=PACK_DIR)
     parser.add_argument("--figure-dir", type=Path, default=FIGURE_DIR)
     parser.add_argument("--baseline-ref", default="HEAD")
+    parser.add_argument("--released-ref", default="")
     parser.add_argument("--threshold", type=float, default=0.05)
     parser.add_argument("--github-output")
     parser.add_argument("--summary")
     args = parser.parse_args()
 
     lines = ["# Question pool validation", ""]
+    details: list[str] = []
     try:
         packs = load_packs(args.pack_dir, args.figure_dir)
         validate_index(args.pack_dir, packs)
@@ -335,6 +337,32 @@ def main() -> int:
             classification = "review"
             changed = True
             details = [f"baseline comparison failed: {exc}"]
+
+    if classification == "none" and args.released_ref:
+        try:
+            released_packs, released_figures = load_baseline(args.released_ref)
+            _, released_details, released_changed = compare(
+                packs,
+                released_packs,
+                args.figure_dir,
+                released_figures,
+                args.threshold,
+            )
+        except InvalidContent as exc:
+            print(f"Could not compare last release: {exc}", file=sys.stderr)
+            classification = "review"
+            changed = True
+            details.append(f"release comparison failed: {exc}")
+        else:
+            if released_changed:
+                classification = "release"
+                changed = True
+                details.append(
+                    f"content differs from last release {args.released_ref}"
+                )
+                details.extend(released_details)
+
+    if args.baseline_ref:
         lines.extend(["## Changes", ""])
         lines.extend(f"- {item}" for item in details)
         if not details:

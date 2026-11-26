@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "17 6 * * 1"
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/exam_pool/resources/pools/**"
+      - "src/exam_pool/resources/figures/**"
 
 permissions:
   contents: write
@@ -19,6 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -32,10 +39,18 @@ jobs:
         run: python tools/import_ncvec.py --refresh
       - name: Rebuild pool index
         run: python tools/build_index.py
+      - name: Find latest release tag
+        id: last-release
+        run: |
+          ref=$(git tag --list 'v*' --sort=-v:refname | head -n 1)
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
       - name: Validate pool changes
         id: validate
         continue-on-error: true
-        run: python tools/validate_packs.py --summary "$GITHUB_STEP_SUMMARY"
+        run: |
+          python tools/validate_packs.py \
+            --released-ref "${{ steps.last-release.outputs.ref }}" \
+            --summary "$GITHUB_STEP_SUMMARY"
       - name: Open review PR for invalid content
         if: steps.validate.outputs.classification == 'invalid'
         uses: peter-evans/create-pull-request@v6

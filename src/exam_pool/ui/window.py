@@ -41,7 +41,6 @@ class MainWindow(Adw.ApplicationWindow):
             settings,
             repository,
             self._on_home_back_state,
-            self._open_test,
         )
         self._stack.add_titled_with_icon(
             self._home_page, "home", "Study", "go-home-symbolic"
@@ -72,6 +71,14 @@ class MainWindow(Adw.ApplicationWindow):
             self._switcher, "policy", Adw.ViewSwitcherPolicy.NARROW
         )
         self.add_breakpoint(breakpoint)
+        home_breakpoint = Adw.Breakpoint(
+            condition=Adw.BreakpointCondition.parse("max-width: 700sp")
+        )
+        for row in self._home_page._home.rows:
+            home_breakpoint.add_setter(
+                row, "orientation", Gtk.Orientation.VERTICAL
+            )
+        self.add_breakpoint(home_breakpoint)
 
         self._back_button = Gtk.Button.new_from_icon_name("go-previous-symbolic")
         self._back_button.set_tooltip_text("Back")
@@ -173,12 +180,6 @@ class MainWindow(Adw.ApplicationWindow):
     def _open_pool(self, pack: Pack) -> None:
         self._stack.set_visible_child_name("home")
         self._home_page.open_pool(pack)
-
-    def _open_test(self, summary: PackSummary) -> None:
-        if self._test_page is None:
-            self._ensure_test_page()
-        self._stack.set_visible_child_name("test")
-        self._test_page.select_pool(summary)
 
     def show_update_banner(
         self,

@@ -9,19 +9,12 @@ from ..data.packs import PackRepository
 from ..domain.models import Pack, PackSummary
 from ..settings import Settings
 
-POOL_ICONS = {
-    "technician": "radio-symbolic",
-    "general": "network-wireless-symbolic",
-    "extra": "applications-science-symbolic",
-}
-
 
 class PoolCard(Gtk.Box):
     def __init__(
         self,
         summary: PackSummary,
         on_study: Callable[[PackSummary], None],
-        on_test: Callable[[PackSummary], None],
     ) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         self.add_css_class("card")
@@ -31,14 +24,6 @@ class PoolCard(Gtk.Box):
         self._summary = summary
 
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        icon = Gtk.Image.new_from_icon_name(
-            POOL_ICONS.get(summary.license_class, "radio-symbolic")
-        )
-        icon.set_pixel_size(64)
-        icon.add_css_class("pool-icon")
-        icon.set_valign(Gtk.Align.START)
-        header.append(icon)
-
         title_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
         title_box.set_hexpand(True)
         title = Gtk.Label(label=summary.license_name)
@@ -80,11 +65,6 @@ class PoolCard(Gtk.Box):
         self.study_button.set_hexpand(True)
         self.study_button.connect("clicked", lambda _button: on_study(summary))
         actions.append(self.study_button)
-
-        self.test_button = Gtk.Button(label="Practice Test")
-        self.test_button.set_hexpand(True)
-        self.test_button.connect("clicked", lambda _button: on_test(summary))
-        actions.append(self.test_button)
         self.append(actions)
 
         self.refresh(0, 0)
@@ -112,7 +92,6 @@ class HomeView(Gtk.Box):
         db: Database,
         settings: Settings,
         on_open_pool: Callable[[PackSummary], None],
-        on_open_test: Callable[[PackSummary], None],
     ) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self._packs = packs
@@ -140,27 +119,27 @@ class HomeView(Gtk.Box):
         heading.set_xalign(0)
         content.append(heading)
         description = Gtk.Label(
-            label="Choose a pool to study or take a practice test."
+            label="Choose a pool to study. Use the Test tab for a practice test."
         )
         description.add_css_class("dim-label")
         description.set_xalign(0)
         description.set_wrap(True)
         content.append(description)
 
-        flow = Gtk.FlowBox()
-        flow.set_selection_mode(Gtk.SelectionMode.NONE)
-        flow.set_homogeneous(True)
-        flow.set_max_children_per_line(3)
-        flow.set_min_children_per_line(1)
-        flow.set_column_spacing(18)
-        flow.set_row_spacing(18)
-        flow.set_valign(Gtk.Align.START)
-        flow.set_hexpand(True)
-        for pack in packs:
-            card = PoolCard(pack, on_open_pool, on_open_test)
-            flow.append(card)
+        rows = []
+        for row_index in range((len(packs) + 1) // 2):
+            row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=18)
+            row.set_halign(Gtk.Align.CENTER)
+            row.set_valign(Gtk.Align.START)
+            rows.append(row)
+            content.append(row)
+
+        for index, pack in enumerate(packs):
+            card = PoolCard(pack, on_open_pool)
+            card.set_size_request(300, -1)
+            rows[index // 2].append(card)
             self._cards[pack.id] = card
-        content.append(flow)
+        self.rows = rows
 
         note = Gtk.Label(
             label="Question content is imported from the official NCVEC pools. "
@@ -193,7 +172,6 @@ class HomePage(Gtk.Stack):
         settings: Settings,
         repository: PackRepository,
         on_back_state: Callable[[bool], None],
-        on_open_test: Callable[[PackSummary], None],
     ) -> None:
         super().__init__()
         self._on_back_state = on_back_state
@@ -203,7 +181,6 @@ class HomePage(Gtk.Stack):
             db,
             settings,
             self._open_pool,
-            on_open_test,
         )
         from .study import StudyView
 

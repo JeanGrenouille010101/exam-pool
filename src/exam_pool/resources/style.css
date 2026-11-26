@@ -2,6 +2,14 @@
   padding: 18px 20px;
 }
 
+.pool-card {
+  padding: 18px;
+}
+
+.pool-card:hover {
+  background-color: @card_bg_color;
+}
+
 .feedback-card {
   padding: 14px 16px;
 }

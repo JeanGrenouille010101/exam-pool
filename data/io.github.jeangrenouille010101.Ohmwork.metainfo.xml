@@ -28,6 +28,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.3.1" date="2026-11-26">
+      <description>
+        <p>Simplify the pool cards and center the final card.</p>
+      </description>
+    </release>
     <release version="0.3.0" date="2026-11-26">
       <description>
         <p>Add the new pool-card home screen with direct study and practice-test actions.</p>

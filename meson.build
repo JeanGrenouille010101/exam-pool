@@ -1,6 +1,6 @@
 project(
   'ohmwork',
-  version: '0.3.2',
+  version: '0.3.3',
   license: 'GPL-3.0-or-later',
   meson_version: '>=0.63',
 )

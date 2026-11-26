@@ -28,6 +28,11 @@
   </categories>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.3.3" date="2026-11-26">
+      <description>
+        <p>Unify the Study and Test menus, pin primary actions, and adapt the layout for narrow windows.</p>
+      </description>
+    </release>
     <release version="0.3.2" date="2026-11-26">
       <description>
         <p>Refine the practice-test setup into the card-based interface.</p>

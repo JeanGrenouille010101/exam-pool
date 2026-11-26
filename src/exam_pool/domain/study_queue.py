@@ -22,13 +22,24 @@ class StudyQueue:
         progress: Mapping[str, Progress],
         config: MasteryConfig,
         rng: Random | None = None,
+        *,
+        queue_ids: Iterable[str] | None = None,
+        answered: int = 0,
     ) -> None:
+        questions = tuple(questions)
         self._questions = {question.id: question for question in questions}
         self._config = config
         self._rng = rng or Random()
         self._current: Question | None = None
-        self._answered = 0
+        self._answered = max(0, int(answered))
         self._queue: deque[str] = deque()
+        if queue_ids is not None:
+            self._queue.extend(
+                question_id
+                for question_id in queue_ids
+                if question_id in self._questions
+            )
+            return
         available = [
             question.id
             for question in questions
@@ -46,8 +57,18 @@ class StudyQueue:
         progress: Mapping[str, Progress],
         config: MasteryConfig,
         rng: Random | None = None,
+        *,
+        queue_ids: Iterable[str] | None = None,
+        answered: int = 0,
     ) -> StudyQueue:
-        return cls(pack.questions, progress, config, rng)
+        return cls(
+            pack.questions,
+            progress,
+            config,
+            rng,
+            queue_ids=queue_ids,
+            answered=answered,
+        )
 
     @property
     def current(self) -> Question | None:
@@ -60,6 +81,10 @@ class StudyQueue:
     @property
     def remaining(self) -> int:
         return len(self._queue)
+
+    @property
+    def queue_ids(self) -> tuple[str, ...]:
+        return tuple(self._queue)
 
     @property
     def total_estimate(self) -> int:
@@ -76,6 +101,18 @@ class StudyQueue:
             return None
         self._current = self._questions[self._queue.popleft()]
         return self._current
+
+    def restore_current(self, question_id: str | None) -> Question | None:
+        """Restore an already-presented question without advancing the queue."""
+        if self._current is not None:
+            raise RuntimeError("a question is already current")
+        if question_id is None:
+            return None
+        question = self._questions.get(question_id)
+        if question is None:
+            return None
+        self._current = question
+        return question
 
     def submit(self, correct: bool, progress: Progress) -> None:
         """Advance the queue after an answer has been applied to progress."""

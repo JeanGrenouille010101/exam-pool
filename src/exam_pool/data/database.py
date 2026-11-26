@@ -17,7 +17,7 @@ from ..domain.models import (
     is_mastered,
 )
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def utc_now() -> str:
@@ -153,6 +153,21 @@ class Database:
                     (now,),
                 )
                 version = 2
+            if version < 3:
+                self._conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS study_sessions (
+                        pack_id TEXT PRIMARY KEY,
+                        session_id TEXT NOT NULL,
+                        queue_json TEXT NOT NULL,
+                        current_question_id TEXT,
+                        answered INTEGER NOT NULL DEFAULT 0,
+                        selected TEXT,
+                        updated_at TEXT NOT NULL
+                    )
+                    """
+                )
+                version = 3
             if version != SCHEMA_VERSION:
                 raise RuntimeError(f"no migration from schema {version}")
             self._conn.execute("DELETE FROM schema_version")
@@ -177,6 +192,70 @@ class Database:
         if row is None:
             return Progress(pack_id, question_id)
         return self._progress_from_row(row)
+
+    def get_study_session(self, pack_id: str) -> dict | None:
+        row = self._conn.execute(
+            "SELECT * FROM study_sessions WHERE pack_id = ?", (pack_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        try:
+            queue = json.loads(row["queue_json"])
+        except (TypeError, json.JSONDecodeError):
+            queue = []
+        if not isinstance(queue, list):
+            queue = []
+        return {
+            "pack_id": row["pack_id"],
+            "session_id": row["session_id"],
+            "queue": [str(item) for item in queue],
+            "current_question_id": row["current_question_id"],
+            "answered": int(row["answered"]),
+            "selected": row["selected"],
+            "updated_at": row["updated_at"],
+        }
+
+    def save_study_session(
+        self,
+        pack_id: str,
+        session_id: str,
+        queue_ids: tuple[str, ...] | list[str],
+        current_question_id: str | None,
+        answered: int,
+        selected: str | None,
+    ) -> None:
+        now = utc_now()
+        with self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO study_sessions (
+                    pack_id, session_id, queue_json, current_question_id,
+                    answered, selected, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (pack_id) DO UPDATE SET
+                    session_id = excluded.session_id,
+                    queue_json = excluded.queue_json,
+                    current_question_id = excluded.current_question_id,
+                    answered = excluded.answered,
+                    selected = excluded.selected,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    pack_id,
+                    session_id,
+                    json.dumps(list(queue_ids)),
+                    current_question_id,
+                    int(answered),
+                    selected,
+                    now,
+                ),
+            )
+
+    def clear_study_session(self, pack_id: str) -> None:
+        with self._conn:
+            self._conn.execute(
+                "DELETE FROM study_sessions WHERE pack_id = ?", (pack_id,)
+            )
 
     def record_study_answer(
         self,
@@ -315,11 +394,15 @@ class Database:
                 self._conn.execute(
                     "DELETE FROM question_stats WHERE pack_id = ?", (pack_id,)
                 )
+                self._conn.execute(
+                    "DELETE FROM study_sessions WHERE pack_id = ?", (pack_id,)
+                )
             else:
                 self._conn.execute("DELETE FROM question_progress")
                 self._conn.execute("DELETE FROM attempts")
                 self._conn.execute("DELETE FROM test_sessions")
                 self._conn.execute("DELETE FROM question_stats")
+                self._conn.execute("DELETE FROM study_sessions")
 
     # ------------------------------------------------------------------
     # Tests

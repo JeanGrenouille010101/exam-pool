@@ -80,6 +80,31 @@ def test_changed_content_hash_resets_progress(db, pack) -> None:
     assert progress.times_correct == 1
 
 
+def test_study_session_survives_restart_and_can_be_cleared(db, pack) -> None:
+    queue = [question.id for question in pack.questions[:2]]
+    db.save_study_session(
+        pack.id,
+        "study-session",
+        queue,
+        queue[0],
+        3,
+        "B",
+    )
+
+    db.close()
+    db = Database(db.path)
+    session = db.get_study_session(pack.id)
+    assert session is not None
+    assert session["session_id"] == "study-session"
+    assert session["queue"] == queue
+    assert session["current_question_id"] == queue[0]
+    assert session["answered"] == 3
+    assert session["selected"] == "B"
+
+    db.clear_study_session(pack.id)
+    assert db.get_study_session(pack.id) is None
+
+
 def test_test_session_scoring_history_and_stats(db, pack) -> None:
     exam = build_exam(pack, Random(11))
     session_id = db.start_test_session(
@@ -175,8 +200,10 @@ def test_reset_progress_removes_attempts_and_tests(db, pack) -> None:
     db.save_test_answer(session_id, 0, exam[0].question, exam[0].question.correct)
     db.finish_test_session(session_id)
     db.record_study_answer(pack, pack.questions[0], pack.questions[0].correct, CONFIG)
+    db.save_study_session(pack.id, "session", [], None, 0, None)
 
     db.reset_progress(pack.id)
     assert db.get_progress(pack.id) == {}
     assert db.count_attempts(pack.id) == 0
     assert db.score_history(pack.id) == []
+    assert db.get_study_session(pack.id) is None

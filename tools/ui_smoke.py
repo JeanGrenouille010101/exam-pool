@@ -54,6 +54,28 @@ def exercise(app: ExamPoolApplication) -> bool:
         assert study._checks[correct_index].has_css_class("correct-answer")
         assert study._checks[wrong_index].has_css_class("wrong-answer")
         study._show_next_question()
+        resume_question = study._current.id
+        resume_answered = study._queue.answered
+        seen = app._db.seen_count(pack.id)
+        mastered = app._db.mastered_count(pack.id, app._settings.mastery)
+        assert study._pool_progress.get_text() == (
+            f"{seen} of {len(pack.questions)} seen · {mastered} mastered"
+        )
+        assert study._session_progress.get_text() == (
+            f"This session: {resume_answered} answered · "
+            f"{study._queue.remaining} queued"
+        )
+        window._home_page.back()
+        window._home_page.open_pool(pack)
+        study = window._home_page._study
+        assert study._queue is not None
+        assert study._queue.answered == resume_answered
+        assert study._current is not None
+        assert study._current.id == resume_question
+        study._start_over_button.emit("clicked")
+        assert study._queue is not None
+        assert study._queue.answered == 0
+        assert study._current is not None
         window._home_page.back()
 
         extra_summary = next(

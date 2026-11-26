@@ -75,13 +75,27 @@ class StudyView(Gtk.Box):
         self._pool_title.add_css_class("title-2")
         self._pool_title.set_xalign(0)
         header.append(self._pool_title)
-        self._session_progress = Gtk.Label()
-        self._session_progress.add_css_class("dim-label")
-        self._session_progress.set_xalign(0)
-        header.append(self._session_progress)
+        self._pool_progress = Gtk.Label()
+        self._pool_progress.add_css_class("dim-label")
+        self._pool_progress.set_xalign(0)
+        header.append(self._pool_progress)
         self._progress_bar = Gtk.ProgressBar()
         self._progress_bar.set_margin_top(4)
         header.append(self._progress_bar)
+        session_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self._session_progress = Gtk.Label()
+        self._session_progress.add_css_class("dim-label")
+        self._session_progress.add_css_class("caption")
+        self._session_progress.set_xalign(0)
+        self._session_progress.set_hexpand(True)
+        session_row.append(self._session_progress)
+        self._start_over_button = Gtk.Button(label="Start over")
+        self._start_over_button.add_css_class("flat")
+        self._start_over_button.add_css_class("caption")
+        self._start_over_button.set_visible(False)
+        self._start_over_button.connect("clicked", self._on_start_over_clicked)
+        session_row.append(self._start_over_button)
+        header.append(session_row)
         content.append(header)
 
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
@@ -162,16 +176,64 @@ class StudyView(Gtk.Box):
     # ------------------------------------------------------------------
     # Session lifecycle
 
-    def start(self, pack: Pack) -> None:
+    def start(self, pack: Pack, *, resume: bool = True) -> None:
         self._pack = pack
+        self._pool_title.set_text(pack.license_name)
+        self._start_over_button.set_visible(True)
+        self._checks = []
+        self._current = None
+        self._selected = None
+        self._answered = False
+
+        session = self._db.get_study_session(pack.id) if resume else None
+        if session is not None:
+            self._session_id = session["session_id"] or str(uuid.uuid4())
+            self._queue = StudyQueue.for_pack(
+                pack,
+                self._db.get_progress(pack.id),
+                self._settings.mastery,
+                queue_ids=session["queue"],
+                answered=session["answered"],
+            )
+            question = self._queue.restore_current(
+                session["current_question_id"]
+            )
+            if question is not None:
+                self._present_question(question, selected=session["selected"])
+                self._save_state()
+                return
+            self._show_next_question()
+            return
+
+        if not resume:
+            self._db.clear_study_session(pack.id)
+        self._session_id = str(uuid.uuid4())
         self._queue = StudyQueue.for_pack(
             pack,
             self._db.get_progress(pack.id),
             self._settings.mastery,
         )
-        self._session_id = str(uuid.uuid4())
-        self._pool_title.set_text(pack.license_name)
         self._show_next_question()
+
+    def _present_question(
+        self, question: Question, *, selected: str | None = None
+    ) -> None:
+        self._current = question
+        self._selected = None
+        self._answered = False
+        self._question_started = time.monotonic()
+
+        self._set_question_meta(question)
+        self._question_label.set_text(question.text)
+        self._question_label.select_region(0, 0)
+        self._render_figure(question)
+        self._render_choices(question, selected=selected)
+        self._feedback.set_visible(False)
+        self._action_stack.set_visible_child_name("check")
+        self._check_button.set_sensitive(self._selected is not None)
+        self._stack.set_visible_child_name("question")
+        self._scrolled.get_vadjustment().set_value(0)
+        self._update_progress()
 
     def _show_next_question(self) -> None:
         assert self._queue is not None
@@ -179,23 +241,44 @@ class StudyView(Gtk.Box):
         if question is None:
             self._show_complete()
             return
-        self._current = question
+        self._present_question(question)
+        self._save_state()
+
+    def _save_state(self) -> None:
+        if self._pack is None or self._queue is None:
+            return
+        current_id = None
+        selected = None
+        if self._current is not None and not self._answered:
+            current_id = self._current.id
+            selected = self._selected
+        self._db.save_study_session(
+            self._pack.id,
+            self._session_id,
+            self._queue.queue_ids,
+            current_id,
+            self._queue.answered,
+            selected,
+        )
+
+    def pause(self) -> None:
+        if (
+            self._pack is not None
+            and self._queue is not None
+            and self._stack.get_visible_child_name() == "question"
+        ):
+            self._save_state()
+
+    def discard_session(self) -> None:
+        if self._pack is not None:
+            self._db.clear_study_session(self._pack.id)
+        self._pack = None
+        self._queue = None
+        self._current = None
         self._selected = None
         self._answered = False
-        self._question_started = time.monotonic()
-
-        self._set_question_meta(question)
-
-        self._question_label.set_text(question.text)
-        self._question_label.select_region(0, 0)
-        self._render_figure(question)
-        self._render_choices(question)
-        self._feedback.set_visible(False)
-        self._action_stack.set_visible_child_name("check")
-        self._check_button.set_sensitive(False)
-        self._stack.set_visible_child_name("question")
-        self._scrolled.get_vadjustment().set_value(0)
-        self._update_progress()
+        self._checks = []
+        self._start_over_button.set_visible(False)
 
     def _set_question_meta(self, question: Question) -> None:
         assert self._pack is not None
@@ -234,7 +317,9 @@ class StudyView(Gtk.Box):
             self._figure_box.append(label)
             self._figure_box.set_visible(True)
 
-    def _render_choices(self, question: Question) -> None:
+    def _render_choices(
+        self, question: Question, *, selected: str | None = None
+    ) -> None:
         clear_box(self._choices_box)
         self._checks = []
         first: Gtk.CheckButton | None = None
@@ -251,6 +336,8 @@ class StudyView(Gtk.Box):
             else:
                 check.set_group(first)
             check.connect("toggled", self._on_choice_toggled, choice.id)
+            if choice.id == selected:
+                check.set_active(True)
             self._choices_box.append(check)
             self._checks.append(check)
 
@@ -260,6 +347,8 @@ class StudyView(Gtk.Box):
         self._check_button.set_visible(False)
         self._next_button.set_visible(False)
         assert self._pack is not None
+        self._db.clear_study_session(self._pack.id)
+        self._start_over_button.set_visible(False)
         progress = self._db.get_progress(self._pack.id)
         config = self._settings.mastery
         mastered = sum(
@@ -291,7 +380,11 @@ class StudyView(Gtk.Box):
             study_again.add_css_class("suggested-action")
             study_again.connect(
                 "clicked",
-                lambda _button: self.start(self._pack) if self._pack else None,
+                lambda _button: (
+                    self.start(self._pack, resume=False)
+                    if self._pack
+                    else None
+                ),
             )
             buttons.append(study_again)
         back = Gtk.Button(label="Back to pools")
@@ -308,6 +401,7 @@ class StudyView(Gtk.Box):
         if check.get_active():
             self._selected = choice_id
             self._check_button.set_sensitive(True)
+            self._save_state()
 
     def _on_check_clicked(self, _button: Gtk.Button) -> None:
         self._submit_answer()
@@ -330,6 +424,7 @@ class StudyView(Gtk.Box):
         )
         self._queue.submit(outcome.correct, outcome.progress)
         self._answered = True
+        self._save_state()
 
         for check in self._checks:
             check.set_sensitive(False)
@@ -374,6 +469,10 @@ class StudyView(Gtk.Box):
     def _on_next_clicked(self, _button: Gtk.Button) -> None:
         self._show_next_question()
 
+    def _on_start_over_clicked(self, _button: Gtk.Button) -> None:
+        if self._pack is not None:
+            self.start(self._pack, resume=False)
+
     def _scroll_to_feedback(self) -> None:
         if self._scrolled is None:
             return
@@ -383,15 +482,22 @@ class StudyView(Gtk.Box):
         )
 
     def _update_progress(self) -> None:
-        if self._queue is None:
+        if self._queue is None or self._pack is None:
             return
         answered = self._queue.answered
         remaining = self._queue.remaining
-        total = max(1, answered + remaining)
         self._session_progress.set_text(
-            f"{answered} answered · {remaining} queued"
+            f"This session: {answered} answered · {remaining} queued"
         )
-        self._progress_bar.set_fraction(min(1.0, answered / total))
+        total = len(self._pack.questions)
+        seen = self._db.seen_count(self._pack.id)
+        mastered = self._db.mastered_count(self._pack.id, self._settings.mastery)
+        self._pool_progress.set_text(
+            f"{seen} of {total} seen · {mastered} mastered"
+        )
+        self._progress_bar.set_fraction(
+            min(1.0, seen / total) if total else 0.0
+        )
 
     # ------------------------------------------------------------------
     # Keyboard

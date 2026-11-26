@@ -71,3 +71,41 @@ def test_mastered_questions_are_not_queued(pack) -> None:
         queued.append(question.id)
         queue.submit(True, Progress(pack.id, question.id, content_hash="h"))
     assert mastered.question_id not in queued
+
+
+def test_queue_restores_saved_order_and_answered_count(pack) -> None:
+    ids = [question.id for question in pack.questions]
+    queue = StudyQueue.for_pack(
+        pack, {}, CONFIG, queue_ids=ids, answered=4
+    )
+    assert queue.answered == 4
+    assert queue.queue_ids == tuple(ids)
+
+    current = queue.next_question()
+    assert current is not None
+    assert current.id == ids[0]
+    assert queue.queue_ids == tuple(ids[1:])
+
+
+def test_queue_restores_current_question(pack) -> None:
+    ids = [question.id for question in pack.questions]
+    queue = StudyQueue.for_pack(
+        pack, {}, CONFIG, queue_ids=ids[1:], answered=1
+    )
+    question = queue.restore_current(ids[0])
+    assert question is not None
+    assert question.id == ids[0]
+    assert queue.current is not None
+    assert queue.current.id == ids[0]
+    assert queue.queue_ids == tuple(ids[1:])
+
+
+def test_queue_restore_drops_unknown_questions(pack) -> None:
+    queue = StudyQueue.for_pack(
+        pack,
+        {},
+        CONFIG,
+        queue_ids=["missing", pack.questions[0].id],
+    )
+    assert queue.queue_ids == (pack.questions[0].id,)
+    assert queue.restore_current("missing") is None

@@ -133,6 +133,16 @@ class HomePage(Gtk.Stack):
         self._open_pool(pack)
 
     def back(self) -> None:
+        self._study.pause()
+        self.set_visible_child_name("home")
+        self._home.refresh()
+        self._on_back_state(False)
+
+    def pause(self) -> None:
+        self._study.pause()
+
+    def discard(self) -> None:
+        self._study.discard_session()
         self.set_visible_child_name("home")
         self._home.refresh()
         self._on_back_state(False)

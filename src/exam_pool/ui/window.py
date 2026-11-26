@@ -226,8 +226,7 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _reset_all(self) -> None:
         self._db.reset_progress()
-        self._home_page.back()
-        self._home_page.refresh()
+        self._home_page.discard()
         if self._test_page is not None:
             self._test_page.show_setup()
         if self._stats_page is not None:
@@ -250,6 +249,7 @@ class MainWindow(Adw.ApplicationWindow):
     def _on_close_request(self, _window: Adw.ApplicationWindow) -> bool:
         width, height = self.get_default_size()
         self._settings.set_window_size(width, height)
+        self._home_page.pause()
         if self._test_page is not None:
             self._test_page.shutdown()
         return False

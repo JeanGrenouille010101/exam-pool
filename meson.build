@@ -31,7 +31,6 @@ py.install_sources(
   'src/exam_pool/data/__init__.py',
   'src/exam_pool/data/database.py',
   'src/exam_pool/data/packs.py',
-  'src/exam_pool/data/updates.py',
   subdir: 'exam_pool/data',
 )
 
